@@ -382,3 +382,55 @@ form h2 em,
 .dark-mood .diy-preview h2 em {
   color: #ffd0de;
 }
+
+/* Mobile hardening: protects compact phones from horizontal overflow. */
+body {
+  min-width: 320px;
+  overflow-x: hidden;
+}
+
+img {
+  max-width: 100%;
+  height: auto;
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding-top: env(safe-area-inset-top);
+    height: calc(68px + env(safe-area-inset-top));
+  }
+
+  .nav-wrap {
+    padding-left: 16px;
+    padding-right: 16px;
+    gap: 10px;
+  }
+
+  .brand { font-size: 1.35rem; }
+  .brand-mark { font-size: 1rem; }
+  .nav-tools { gap: 5px; }
+  .lang-mini, .menu-toggle, .mood-toggle { width: 34px; height: 34px; }
+
+  nav {
+    top: calc(68px + env(safe-area-inset-top));
+    max-height: calc(100vh - 68px - env(safe-area-inset-top));
+    overflow-y: auto;
+  }
+
+  .hero { padding: 46px 16px 64px; gap: 34px; }
+  .hero h1, .page-intro h1 { font-size: 2.75rem; }
+  .hero h1 em { white-space: normal; }
+  .hero p { font-size: 1rem; margin: 21px 0; }
+  .hero-visual { margin: 0; }
+  .image-art.wide { min-height: 310px; }
+  .floating-note { padding: 7px 10px; font-size: .67rem; }
+  .section, .custom-band, .band, .inner-page { padding-left: 16px; padding-right: 16px; }
+  .section { padding-top: 60px; padding-bottom: 60px; }
+  .kits-section, .blush-section { padding-left: 16px; padding-right: 16px; }
+  .instagram-band { padding: 68px 16px; }
+  .cream-explain { padding: 24px 18px; }
+  .info-band { padding: 26px 20px; }
+  .footer-top, .footer-bottom { padding-left: 16px; padding-right: 16px; }
+  .request-points { grid-template-columns: 1fr; }
+  .workshop-photo-section .image-gallery .image-art { min-height: 290px; }
+}
