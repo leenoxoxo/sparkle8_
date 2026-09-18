@@ -2,6 +2,7 @@ services:
   - type: web
     runtime: static
     name: sparkle8
+    branch: main
     buildCommand: npm ci && npm run build
     staticPublishPath: dist
     routes:

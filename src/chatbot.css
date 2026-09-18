@@ -1,0 +1,19 @@
+.sparkle-chat{position:fixed;right:20px;bottom:20px;z-index:50;color:var(--ink);font-family:'DM Sans',Tahoma,sans-serif;font-size:14px}
+.chat-launcher{display:flex;align-items:center;gap:9px;margin-inline-start:auto;border:1px solid var(--line);border-radius:99px;padding:13px 18px;background:var(--rose);color:var(--cream);box-shadow:var(--shadow);cursor:pointer}
+.chat-panel{display:flex;flex-direction:column;width:min(370px,calc(100vw - 32px));height:min(550px,calc(100dvh - 108px));background:var(--paper);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);margin-bottom:12px;overflow:hidden}
+.chat-heading{display:flex;align-items:center;gap:10px;padding:16px;border-bottom:1px solid var(--line);color:var(--rose)}
+.chat-heading small{display:block;font-size:11px;color:var(--muted)}
+.chat-heading button{margin-inline-start:auto;border:0;background:transparent;cursor:pointer;display:grid;place-items:center;padding:8px}
+.chat-log{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px}
+.chat-message{white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border-radius:14px;background:var(--blush);max-width:94%;line-height:1.55;flex-shrink:0}
+.chat-user{align-self:flex-end;background:var(--rose);color:var(--paper)}
+.chat-message a{display:block;margin-top:8px;text-decoration:underline;color:var(--rose)}
+.chat-suggestions{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px}
+.chat-suggestions button{border:1px solid var(--line);border-radius:99px;background:transparent;padding:6px 10px;font-size:12px;cursor:pointer}
+.chat-form{display:flex;gap:8px;padding:10px 12px;border:0;border-radius:0;background:transparent}
+.chat-form input{min-width:0;flex:1;font-size:16px}
+.chat-form button{border:0;border-radius:12px;padding:12px;background:var(--rose);color:var(--paper);cursor:pointer}
+.chat-form button:disabled{opacity:.45;cursor:default}
+.chat-contact{padding:2px 12px 14px;text-align:center;font-size:11px;color:var(--rose);text-decoration:underline}
+.sparkle-chat button:focus-visible,.sparkle-chat a:focus-visible{outline:2px solid var(--rose);outline-offset:3px}
+@media(max-width:480px){.sparkle-chat{right:12px;bottom:max(12px,env(safe-area-inset-bottom))}.chat-panel{width:calc(100vw - 24px)}}
