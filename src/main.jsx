@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { ArrowUpRight, Camera, Heart, Menu, Moon, Sparkles, Sun, X } from 'lucide-react';
 import './styles.css';
@@ -125,7 +125,7 @@ const products = [
   {"slug":"summer-cream-mirror","name":"Summer Cream Mirror","category":"Mirrors","status":"Available","price":"Message us","description":"A summer-inspired cream mirror with a playful handmade finish, bringing a little sunshine to your everyday touch-ups.","tone":"cream","icon":"✨","image":"/SHOP%20IMGS/summer%20cream%20mirror.png","details":["You can pick colors and shapes.","Message us on Instagram"]},
 ];
 const customCarouselState = [0, 0];
-let customCarouselScroll = 0;
+
 const customBoxDescriptions = {
   "sunflower fake cake box.png": [
     "A cream-decorated cake-style box with a cheerful sunflower-inspired design.",
@@ -228,7 +228,32 @@ const workshops = [
 ];
 
 function usePath() { return window.location.pathname.replace(/\/$/, '') || '/'; }
-function navigate(path) { if (window.location.pathname === '/custom-orders') customCarouselScroll = window.scrollY; window.history.pushState({}, '', path); window.dispatchEvent(new PopStateEvent('popstate')); window.scrollTo(0, 0); }
+const routeScrollPositions = new Map();
+function routeEntry() {
+  if (!window.history.state?.sparkleEntry) window.history.replaceState({...window.history.state, sparkleEntry: crypto.randomUUID()}, '', window.location.href);
+  return { path: usePath(), key: window.history.state.sparkleEntry };
+}
+function navigate(path) {
+  const entry = routeEntry();
+  routeScrollPositions.set(entry.key, {left:window.scrollX, top:window.scrollY});
+  window.history.pushState({sparkleEntry:crypto.randomUUID()}, '', path);
+  window.dispatchEvent(new PopStateEvent('popstate'));
+}
+function RouteScrollRestoration({ entryKey }) {
+  useLayoutEffect(() => {
+    const previous = window.history.scrollRestoration;
+    window.history.scrollRestoration = 'manual';
+    return () => { window.history.scrollRestoration = previous; };
+  }, []);
+  useLayoutEffect(() => {
+    const position = routeScrollPositions.get(entryKey) || {top:0, left:0};
+    window.scrollTo({...position, behavior:'instant'});
+    const remember = () => routeScrollPositions.set(entryKey, {top:window.scrollY, left:window.scrollX});
+    window.addEventListener('scroll', remember, {passive:true});
+    return () => window.removeEventListener('scroll', remember);
+  }, [entryKey]);
+  return null;
+}
 function ImageCarousel({ images, alt, href, slideLinks, initialIndex = 0, onIndexChange, autoplay = false }) {
   const [index, setIndex] = useState(() => Math.min(initialIndex, images.length - 1));
   const activeHref = slideLinks?.[index] || href;
@@ -359,9 +384,9 @@ function CustomProductCarousel({ items, panelIndex }) {
     </a>
   </figure>;
 }
-function CustomOrders() { const { t } = useT(); const boxes = [customProducts.slice(0, 7).filter(product => !product.image.endsWith('flowers%20fake%20cake%20box.png')), customProducts.slice(7)]; useEffect(() => { const frame = requestAnimationFrame(() => window.scrollTo({top:customCarouselScroll, behavior:"instant"})); return () => cancelAnimationFrame(frame); }, []); return <PageShell title="Fake Cake Boxes" intro="A little collection of dreamy boxes, made just for you."><section className="fake-cake-album"><div className="fake-cake-album-head"><span className="eyebrow">{t('Cake-style Boxes')}</span><h2>{t('Fake Cake Box')}</h2><p>{t('A cream-decorated heart-shaped box designed to look like a tiny dreamy cake.')}</p></div><div className="fake-cake-photo-grid">{boxes.map((items, index) => <CustomProductCarousel items={items} panelIndex={index} key={index}/>)}</div></section><section className="custom-box-cta"><h2>{t('Want a custom box?')}</h2><p>{t("Message us on Instagram and tell us what you'd like.")}</p><Button href={instagram}>{t('Message us on Instagram')}</Button></section></PageShell>; }
+function CustomOrders() { const { t } = useT(); const boxes = [customProducts.slice(0, 7).filter(product => !product.image.endsWith('flowers%20fake%20cake%20box.png')), customProducts.slice(7)];  return <PageShell title="Fake Cake Boxes" intro="A little collection of dreamy boxes, made just for you."><section className="fake-cake-album"><div className="fake-cake-album-head"><span className="eyebrow">{t('Cake-style Boxes')}</span><h2>{t('Fake Cake Box')}</h2><p>{t('A cream-decorated heart-shaped box designed to look like a tiny dreamy cake.')}</p></div><div className="fake-cake-photo-grid">{boxes.map((items, index) => <CustomProductCarousel items={items} panelIndex={index} key={index}/>)}</div></section><section className="custom-box-cta"><h2>{t('Want a custom box?')}</h2><p>{t("Message us on Instagram and tell us what you'd like.")}</p><Button href={instagram}>{t('Message us on Instagram')}</Button></section></PageShell>; }
 function HowToOrder() { return <PageShell title="How to Order 💌" intro="A simple four-step way to bring a little Sparkle home."><div className="big-steps">{[['Explore','Explore products, workshops, and DIY kits.'],['Choose','Choose the item or experience you want.'],['Message','Message Sparkle through Instagram.'],['Confirm','Sparkle confirms the details, availability, and final order information.']].map(([h,p],i)=><div className="big-step" key={h}><span>0{i+1}</span><h2>{h}</h2><p>{p}</p></div>)}</div><div className="center"><Button href={instagram}>Message us on Instagram</Button></div></PageShell>; }
 function Contact() { return <PageShell title="Contact ✦" intro="We'd love to hear from you."><div className="contact-card"><Camera/><h2>Let's make something sparkly</h2><p>For orders, workshops, custom pieces, and sweet questions, send us a message on Instagram.</p><Button href={instagram}>Message Sparkle</Button></div></PageShell>; }
-function App() { const [path,setPath]=useState(usePath()); const [lang,setLang]=useState(() => localStorage.getItem('sparkle-language') || 'en'); const [dark,setDark]=useState(() => localStorage.getItem('sparkle-mood') === 'dark'); useEffect(()=>{const h=()=>setPath(usePath());window.addEventListener('popstate',h);return()=>window.removeEventListener('popstate',h)},[]); useEffect(()=>{document.documentElement.dir=lang==='ar'?'rtl':'ltr'; document.documentElement.lang=lang; document.documentElement.classList.toggle('dark-mood',dark); localStorage.setItem('sparkle-mood',dark?'dark':'light'); localStorage.setItem('sparkle-language',lang); requestAnimationFrame(()=>translateVisibleText(lang));},[lang,path,dark]); const value={lang,t:(text)=>translate(text,lang)}; let view=path==='/'?<Home/>:path==='/about'?<About/>:path==='/shop'?<Shop/>:path==='/diy-kits'?<Kits/>:path==='/workshops'?<Workshops/>:path==='/custom-orders'?<CustomOrders/>:path==='/how-to-order'?<HowToOrder/>:path==='/contact'?<Contact/>:path.startsWith('/products/')?<ProductDetail key={path} product={customProducts.find(p=>p.slug===path.split('/').pop())} backTo="/custom-orders"/>:path.startsWith('/shop/')?<ProductDetail product={products.find(p=>p.slug===path.split('/').pop())}/>:path.startsWith('/workshops/')?<WorkshopDetail workshop={workshops.find(w=>w.slug===path.split('/').pop())}/>:<Home/>; return <TranslationContext.Provider value={value}><Header lang={lang} setLang={setLang} dark={dark} setDark={setDark}/>{view}<Footer lang={lang} setLang={setLang}/><Chatbot lang={lang} t={value.t} products={products} workshops={workshops} kits={kits} instagram={instagram} navigate={navigate}/></TranslationContext.Provider>; }
+function App() { const [route,setRoute]=useState(routeEntry); const path=route.path; const [lang,setLang]=useState(() => localStorage.getItem('sparkle-language') || 'en'); const [dark,setDark]=useState(() => localStorage.getItem('sparkle-mood') === 'dark'); useEffect(()=>{const h=()=>setRoute(routeEntry());window.addEventListener('popstate',h);return()=>window.removeEventListener('popstate',h)},[]); useEffect(()=>{document.documentElement.dir=lang==='ar'?'rtl':'ltr'; document.documentElement.lang=lang; document.documentElement.classList.toggle('dark-mood',dark); localStorage.setItem('sparkle-mood',dark?'dark':'light'); localStorage.setItem('sparkle-language',lang); requestAnimationFrame(()=>translateVisibleText(lang));},[lang,path,dark]); const value={lang,t:(text)=>translate(text,lang)}; let view=path==='/'?<Home/>:path==='/about'?<About/>:path==='/shop'?<Shop/>:path==='/diy-kits'?<Kits/>:path==='/workshops'?<Workshops/>:path==='/custom-orders'?<CustomOrders/>:path==='/how-to-order'?<HowToOrder/>:path==='/contact'?<Contact/>:path.startsWith('/products/')?<ProductDetail key={path} product={customProducts.find(p=>p.slug===path.split('/').pop())} backTo="/custom-orders"/>:path.startsWith('/shop/')?<ProductDetail product={products.find(p=>p.slug===path.split('/').pop())}/>:path.startsWith('/workshops/')?<WorkshopDetail workshop={workshops.find(w=>w.slug===path.split('/').pop())}/>:<Home/>; return <TranslationContext.Provider value={value}><RouteScrollRestoration entryKey={route.key}/><Header lang={lang} setLang={setLang} dark={dark} setDark={setDark}/>{view}<Footer lang={lang} setLang={setLang}/><Chatbot lang={lang} t={value.t} products={products} workshops={workshops} kits={kits} instagram={instagram} navigate={navigate}/></TranslationContext.Provider>; }
 
 createRoot(document.getElementById('root')).render(<App/>);
