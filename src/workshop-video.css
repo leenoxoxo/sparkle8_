@@ -1,0 +1,25 @@
+.workshop-video-preview{position:relative;margin:28px auto 0;width:min(100%,322px);padding:24px 36px 12px}
+.workshop-video-trigger{display:block;width:100%;padding:0;border:0;background:transparent;cursor:pointer;border-radius:18px;text-align:center}
+.workshop-video-frame{display:block;position:relative;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:var(--paper);box-shadow:var(--shadow);transition:transform .25s ease,box-shadow .25s ease}
+.workshop-video-trigger video{display:block;width:100%;height:auto;aspect-ratio:22/27;object-fit:cover;pointer-events:none}
+.workshop-video-caption{display:block;margin-top:10px;color:var(--muted);font-size:.78rem;line-height:1.5;pointer-events:none}
+.workshop-video-trigger:focus-visible{outline:2px solid var(--rose);outline-offset:4px}
+@media(hover:hover){.workshop-video-trigger:hover .workshop-video-frame{transform:scale(1.015);box-shadow:0 20px 48px rgba(131,76,88,.2)}}
+@media(prefers-reduced-motion:reduce){.workshop-video-frame{transition:none}}
+.workshop-video-modal{padding:0;border:0;background:transparent;max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);overflow:visible;margin:auto}
+.workshop-video-modal::backdrop{background:rgba(25,18,24,.78);backdrop-filter:blur(6px)}
+.workshop-video-player{position:relative;line-height:0}
+.workshop-video-player video{display:block;width:auto;height:auto;max-width:calc(100vw - 32px);max-height:calc(100dvh - 64px);border-radius:18px;background:#000;object-fit:contain}
+.workshop-video-close{position:absolute;right:10px;top:10px;z-index:2;width:40px;height:40px;border:1px solid rgba(255,255,255,.5);border-radius:50%;background:rgba(30,20,28,.72);color:#fff;font:28px/1 Arial;cursor:pointer}
+.video-decoration{position:absolute;display:block;pointer-events:none;user-select:none;line-height:1;font-family:Georgia,serif;animation:video-decoration-float 6s ease-in-out infinite;color:#d4b48a}
+.video-star-top{top:0;left:28px;font-size:22px;animation-delay:-1s}
+.video-spark-top{top:2px;right:27px;font-size:23px;color:var(--rose);animation-duration:7s}
+.video-heart-left{top:34%;left:3px;font-size:27px;color:var(--pink);animation-delay:-3s}
+.video-star-right{top:48%;right:5px;font-size:21px;animation-duration:8s;animation-delay:-2s}
+.video-spark-bottom{bottom:65px;left:7px;font-size:21px;color:var(--rose);animation-delay:-4s}
+.video-heart-bottom{bottom:48px;right:4px;font-size:25px;color:var(--pink);animation-duration:7s;animation-delay:-1s}
+@keyframes video-decoration-float{0%,100%{transform:translateY(0) rotate(-5deg) scale(.95);opacity:.7}50%{transform:translateY(-5px) rotate(5deg) scale(1.05);opacity:1}}
+@media(max-width:480px){.workshop-video-preview{padding-inline:28px;width:min(100%,306px)}.video-decoration{font-size:20px}.video-heart-left,.video-heart-bottom{font-size:23px}}
+@media(prefers-reduced-motion:reduce){.video-decoration{animation:none}}
+
+.workshop-video-reserve{margin-top:18px;text-align:center}
