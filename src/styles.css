@@ -476,8 +476,8 @@ img {
 .dark-mood .custom-box-cta h2{color:var(--ink)}
 .dark-mood .custom-box-cta p{color:var(--muted)}
 .section-divider{display:flex;align-items:center;justify-content:center;gap:9px;padding:14px 0;background:var(--cream);pointer-events:none}
-.section-divider span{display:block;width:9px;height:9px;border:1px solid #f5cbdc;border-radius:50%;flex-shrink:0}
-.dark-mood .section-divider span{border-color:#b97d98}
+.section-divider svg{display:block;width:13px;height:13px;color:#f5cbdc;stroke-width:1;fill:none;flex-shrink:0}
+.dark-mood .section-divider svg{color:#b97d98}
 
 /* Only the Workshop moments carousel uses full-width, natural-ratio photos. */
 .workshop-moments-wide{width:100%;margin-inline:auto}
@@ -524,3 +524,23 @@ a.workshop-card:focus-visible{outline:2px solid var(--rose);outline-offset:4px}
 
 a.kit-card{display:block;cursor:pointer}
 a.kit-card:focus-visible{outline:2px solid var(--rose);outline-offset:4px}
+
+.shop-toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:35px}.shop-toolbar .filters{margin-bottom:0}.shop-sort{display:flex;align-items:center;flex-shrink:0;color:var(--muted);font-size:.75rem}
+.shop-sort-icon{position:relative;width:44px;height:44px;display:grid;place-items:center;border:0;padding:0;background:transparent;color:inherit;cursor:pointer}
+.shop-sort-icon:before{content:'';position:absolute;inset:4px;border:1px solid var(--line);border-radius:50%;background:var(--cream)}
+.shop-sort-icon svg{position:relative;pointer-events:none}
+
+.shop-sort-icon:focus-within:before{outline:2px solid var(--rose);outline-offset:3px}
+.shop-sort-icon:hover:before{border-color:var(--rose)}
+.shop-sort-menu{position:fixed;z-index:50;width:220px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 24px);overflow-y:auto;padding:6px;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);color:var(--muted)}
+.shop-sort-menu button{width:100%;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 12px;border:0;border-radius:10px;background:transparent;color:inherit;font:inherit;text-align:start;cursor:pointer}
+.shop-sort-menu button:hover,.shop-sort-menu button:focus-visible{background:var(--cream);color:var(--rose);outline:1px solid var(--line)}
+.shop-sort-menu button[aria-checked="true"]{background:var(--rose);color:#fff}
+.sale-price{display:flex;flex-direction:column;align-items:flex-start;gap:5px}
+.sale-badge{display:inline-block;border-radius:99px;background:var(--rose);color:#fff;padding:3px 8px;font-size:.62rem;line-height:1.4;white-space:nowrap}
+.sale-amounts{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px}
+.sale-amounts del{color:var(--muted);font-size:.8rem}
+.sale-price-detail{margin:16px 0}
+.sale-price-detail strong{font-family:'Playfair Display',Georgia,serif;font-size:2.1rem;color:var(--rose)}
+
+.card-foot .sale-amounts strong,.sale-price-detail .sale-amounts strong{color:#ff1493;text-shadow:0 0 6px rgba(255,20,147,.45),0 0 14px rgba(255,20,147,.25)}

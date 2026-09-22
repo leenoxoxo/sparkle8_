@@ -23,3 +23,6 @@
 @media(prefers-reduced-motion:reduce){.video-decoration{animation:none}}
 
 .workshop-video-reserve{margin-top:18px;text-align:center}
+
+.diy-welcome-video{margin:0 auto 48px;text-align:center}
+.diy-welcome-video>.eyebrow{margin-bottom:0}
