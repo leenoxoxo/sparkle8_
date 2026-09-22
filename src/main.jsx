@@ -484,7 +484,7 @@ function CustomProductCarousel({ items, panelIndex }) {
     <ImageArt images={items.map(item => item.image)} slideLinks={items.map(item => '/products/' + item.slug)} initialIndex={active} onIndexChange={index => { customCarouselState[panelIndex] = index; setActive(index); }} product={{tone:panelIndex ? 'lilac' : 'rose'}} alt={t('Fake Cake Box') + ' ' + (panelIndex + 1)} label={t('Fake Cake Box') + ' ' + String(panelIndex + 1).padStart(2, '0')}/>
     <a className="product-copy" style={{display:'block'}} href={href} onClick={e => { e.preventDefault(); navigate(href); }}>
       <div className="product-meta"><span className="available">{t(product.status)}</span><span>{t(product.category)}</span></div>
-      <h3><a href={productHref} onClick={event => { if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return; event.preventDefault(); navigate(productHref); }}>{t(product.name)}</a></h3><p>{t(product.description)}</p>
+      <h3>{t(product.name)}</h3><p>{t(product.description)}</p>
     </a>
   </figure>;
 }
