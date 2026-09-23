@@ -148,7 +148,8 @@ export const collectionEntries = [
     "variant": "Blue",
     "description": "A playful fake-cake inspired box topped with sweet cherry details and colorful cream-style decorations for a fun, retro-inspired look.",
     "galleryOnly": false,
-    "price": "₪35"
+    "price": "₪10",
+    "originalPrice": "₪19.99"
   },
   {
     "file": "mini.PNG",
