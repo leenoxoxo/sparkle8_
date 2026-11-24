@@ -6,6 +6,7 @@ export default defineConfig({
   base: '/',
   plugins: [react()],
   server: {
+    proxy: {'/api': 'http://localhost:3001'},
     watch: {
       ignored: ['**/*.{HEIC,heic,JPE,jpe,JPEG,jpeg,JPG,jpg,PNG,png,WEBP,webp}']
     }

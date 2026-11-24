@@ -16,7 +16,7 @@ export function resolveItem(catalog, raw) {
   if (!base.variants?.length && raw.variantId) return null;
   const product = variant ? {...base, ...variant} : base;
   const cents = priceCents(product.price);
-  if (cents === null || product.status === 'Sold Out') return null;
+  if (cents === null || product.status === 'Sold Out' || product.purchasable === false) return null;
   return {key:itemKey(base.slug,variant?.id),productId:base.slug,variantId:variant?.id || null,name:base.name,variantName:variant?.name || null,image:product.image,colors:variant?.colors,unitPrice:cents,originalPrice:priceCents(product.originalPrice),quantity:raw.quantity};
 }
 export function restoreCart(catalog, saved) {
