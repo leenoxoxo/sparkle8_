@@ -11,12 +11,14 @@
     "catalog:import": "node --env-file-if-exists=.env server/import-catalog.js",
     "start": "node server/index.js",
     "test": "node --test",
+    "test:mobile": "node --test checks/mobile-product.mjs",
     "build": "node ./node_modules/vite/bin/vite.js build",
     "preview": "vite preview"
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
     "cloudinary": "^2.11.0",
+    "compression": "^1.8.2",
     "connect-pg-simple": "^10.0.0",
     "express": "^5.3.0",
     "express-session": "^1.19.0",
@@ -26,12 +28,13 @@
     "pg": "^8.23.1",
     "react": "latest",
     "react-dom": "latest",
-    "vite": "latest"
+    "vite": "^8.4.0"
   },
   "engines": {
     "node": ">=24.0.0 <25"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.6.0"
+    "@electric-sql/pglite": "^0.6.0",
+    "playwright": "^1.65.1"
   }
 }

@@ -1,0 +1,177 @@
+{
+  "/HOME IMGS/hero img.jpeg": {
+    "320": "/optimized/home-imgs-hero-img-320-ea43f4524e5d.webp",
+    "640": "/optimized/home-imgs-hero-img-640-947189e0af48.webp",
+    "960": "/optimized/home-imgs-hero-img-960-7b4094af9851.webp",
+    "1280": "/optimized/home-imgs-hero-img-1280-feea771bd330.webp"
+  },
+  "/ABOUT US IMGS/about.us.jpeg": {
+    "320": "/optimized/about-us-imgs-about-us-320-8808a4426829.webp",
+    "640": "/optimized/about-us-imgs-about-us-640-81e620d2ce86.webp",
+    "960": "/optimized/about-us-imgs-about-us-960-90123e97cfa7.webp",
+    "1280": "/optimized/about-us-imgs-about-us-1280-20ae4cdd2879.webp"
+  },
+  "/The material.PNG": {
+    "320": "/optimized/the-material-320-bbfceb828c2d.webp",
+    "640": "/optimized/the-material-640-2b3c91c7a0e6.webp",
+    "960": "/optimized/the-material-960-898a6665011d.webp",
+    "1179": "/optimized/the-material-1179-c0ab0c223f5c.webp"
+  },
+  "/CUSTOM ORDERS IMGS/sunflower fake cake box.png": {
+    "320": "/optimized/custom-orders-imgs-sunflower-fake-cake-box-320-d24d2b0ecaed.webp",
+    "640": "/optimized/custom-orders-imgs-sunflower-fake-cake-box-640-35c6d2d6e995.webp",
+    "960": "/optimized/custom-orders-imgs-sunflower-fake-cake-box-960-e112a6ce5cc6.webp",
+    "1254": "/optimized/custom-orders-imgs-sunflower-fake-cake-box-1254-0ff72e72c235.webp"
+  },
+  "/CUSTOM ORDERS IMGS/barbie fake cake box.png": {
+    "320": "/optimized/custom-orders-imgs-barbie-fake-cake-box-320-a4772e33d50d.webp",
+    "640": "/optimized/custom-orders-imgs-barbie-fake-cake-box-640-dc884208e232.webp",
+    "960": "/optimized/custom-orders-imgs-barbie-fake-cake-box-960-4820adbf09a1.webp",
+    "1254": "/optimized/custom-orders-imgs-barbie-fake-cake-box-1254-11287cd3ba37.webp"
+  },
+  "/CUSTOM ORDERS IMGS/sea fake cake box.png": {
+    "320": "/optimized/custom-orders-imgs-sea-fake-cake-box-320-02d30ca0e18b.webp",
+    "640": "/optimized/custom-orders-imgs-sea-fake-cake-box-640-3c5c8e53e166.webp",
+    "960": "/optimized/custom-orders-imgs-sea-fake-cake-box-960-5f9ff7b5066c.webp",
+    "1254": "/optimized/custom-orders-imgs-sea-fake-cake-box-1254-57fe43fa3f16.webp"
+  },
+  "/CUSTOM ORDERS IMGS/butterfly fake cake box.png": {
+    "320": "/optimized/custom-orders-imgs-butterfly-fake-cake-box-320-bcab4ee51ad1.webp",
+    "640": "/optimized/custom-orders-imgs-butterfly-fake-cake-box-640-840eed9c5412.webp",
+    "960": "/optimized/custom-orders-imgs-butterfly-fake-cake-box-960-5599e8ef0341.webp",
+    "1254": "/optimized/custom-orders-imgs-butterfly-fake-cake-box-1254-0e064a31222b.webp"
+  },
+  "/CUSTOM ORDERS IMGS/flowers fake cake box.png": {
+    "320": "/optimized/custom-orders-imgs-flowers-fake-cake-box-320-e7dacff99d78.webp",
+    "640": "/optimized/custom-orders-imgs-flowers-fake-cake-box-640-07c41275d9e6.webp",
+    "960": "/optimized/custom-orders-imgs-flowers-fake-cake-box-960-b3e9b0d5c868.webp",
+    "1254": "/optimized/custom-orders-imgs-flowers-fake-cake-box-1254-e22db1ef0303.webp"
+  },
+  "/CUSTOM ORDERS IMGS/mermaid fake cake box.png": {
+    "320": "/optimized/custom-orders-imgs-mermaid-fake-cake-box-320-ef318a5b42a0.webp",
+    "640": "/optimized/custom-orders-imgs-mermaid-fake-cake-box-640-ce7f316c925c.webp",
+    "960": "/optimized/custom-orders-imgs-mermaid-fake-cake-box-960-b57acd428a80.webp",
+    "1254": "/optimized/custom-orders-imgs-mermaid-fake-cake-box-1254-f9eb0cffa63f.webp"
+  },
+  "/CUSTOM ORDERS IMGS/white fake cake box.png": {
+    "320": "/optimized/custom-orders-imgs-white-fake-cake-box-320-06f19dee2daa.webp",
+    "640": "/optimized/custom-orders-imgs-white-fake-cake-box-640-04cd67a3563f.webp",
+    "960": "/optimized/custom-orders-imgs-white-fake-cake-box-960-bb8cd13f3999.webp",
+    "1254": "/optimized/custom-orders-imgs-white-fake-cake-box-1254-e6a63788bf03.webp"
+  },
+  "/CUSTOM ORDERS IMGS/cherry fake cake box.png": {
+    "320": "/optimized/custom-orders-imgs-cherry-fake-cake-box-320-324be9851d40.webp",
+    "640": "/optimized/custom-orders-imgs-cherry-fake-cake-box-640-acbb86db9abc.webp",
+    "960": "/optimized/custom-orders-imgs-cherry-fake-cake-box-960-dca211a4479e.webp",
+    "1254": "/optimized/custom-orders-imgs-cherry-fake-cake-box-1254-eeeb678ea769.webp"
+  },
+  "/CUSTOM ORDERS IMGS/hotpink fake cake box.png": {
+    "320": "/optimized/custom-orders-imgs-hotpink-fake-cake-box-320-0b04816250cd.webp",
+    "640": "/optimized/custom-orders-imgs-hotpink-fake-cake-box-640-5f10a2300777.webp",
+    "960": "/optimized/custom-orders-imgs-hotpink-fake-cake-box-960-654891332561.webp",
+    "1254": "/optimized/custom-orders-imgs-hotpink-fake-cake-box-1254-d6bba6679e93.webp"
+  },
+  "/WORKSHOPS IMGS/Japanese Cream Basics.jpeg": {
+    "320": "/optimized/workshops-imgs-japanese-cream-basics-320-db2873353731.webp",
+    "640": "/optimized/workshops-imgs-japanese-cream-basics-640-04f2d0466816.webp",
+    "960": "/optimized/workshops-imgs-japanese-cream-basics-960-1d8e6e177327.webp",
+    "1280": "/optimized/workshops-imgs-japanese-cream-basics-1280-6ec8e3fa70bc.webp"
+  },
+  "/WORKSHOPS IMGS/Decoden Phone Case.jpeg": {
+    "320": "/optimized/workshops-imgs-decoden-phone-case-320-921484c1154c.webp",
+    "640": "/optimized/workshops-imgs-decoden-phone-case-640-55690ae475a0.webp",
+    "960": "/optimized/workshops-imgs-decoden-phone-case-960-bc0839abfea8.webp",
+    "1280": "/optimized/workshops-imgs-decoden-phone-case-1280-b420b31b3e78.webp"
+  },
+  "/WORKSHOPS IMGS/Private Group Session.jpeg": {
+    "320": "/optimized/workshops-imgs-private-group-session-320-a2a4bd134f0e.webp",
+    "640": "/optimized/workshops-imgs-private-group-session-640-0f0a93e4c441.webp",
+    "960": "/optimized/workshops-imgs-private-group-session-960-502370d1f3c8.webp",
+    "1280": "/optimized/workshops-imgs-private-group-session-1280-769eced2e8bc.webp"
+  },
+  "/WORKSHOPS IMGS/brush workshop.jpeg": {
+    "320": "/optimized/workshops-imgs-brush-workshop-320-4be9c423d706.webp",
+    "640": "/optimized/workshops-imgs-brush-workshop-640-e00abfc1bbbf.webp",
+    "960": "/optimized/workshops-imgs-brush-workshop-960-1848c0c971f6.webp",
+    "1280": "/optimized/workshops-imgs-brush-workshop-1280-eaed1a545b84.webp"
+  },
+  "/WORKSHOPS IMGS/2.jpeg": {
+    "320": "/optimized/workshops-imgs-2-320-70ab8d9b62e9.webp",
+    "640": "/optimized/workshops-imgs-2-640-0589c289926b.webp",
+    "960": "/optimized/workshops-imgs-2-960-5c26b3791a4a.webp",
+    "1280": "/optimized/workshops-imgs-2-1280-7f7c0ac505df.webp"
+  },
+  "/WORKSHOPS IMGS/3.jpeg": {
+    "320": "/optimized/workshops-imgs-3-320-fa661af6c1d8.webp",
+    "640": "/optimized/workshops-imgs-3-640-35ed838be1a9.webp",
+    "960": "/optimized/workshops-imgs-3-960-6bfdc9ccbb87.webp",
+    "1280": "/optimized/workshops-imgs-3-1280-8fe5991eb7bf.webp"
+  },
+  "/WORKSHOPS IMGS/22.jpeg": {
+    "320": "/optimized/workshops-imgs-22-320-3db55c5e2099.webp",
+    "640": "/optimized/workshops-imgs-22-640-d9f88084a24e.webp",
+    "960": "/optimized/workshops-imgs-22-960-aa9852deea20.webp"
+  },
+  "/WORKSHOPS IMGS/33.jpeg": {
+    "320": "/optimized/workshops-imgs-33-320-ba0200406a8f.webp",
+    "640": "/optimized/workshops-imgs-33-640-e5359d7644f4.webp",
+    "960": "/optimized/workshops-imgs-33-960-545419774aa2.webp",
+    "1280": "/optimized/workshops-imgs-33-1280-1ef98caf79a8.webp"
+  },
+  "/WORKSHOPS IMGS/333.jpeg": {
+    "320": "/optimized/workshops-imgs-333-320-09a61fe432b3.webp",
+    "640": "/optimized/workshops-imgs-333-640-818766968a59.webp",
+    "960": "/optimized/workshops-imgs-333-960-7069fc75c828.webp"
+  },
+  "/WORKSHOPS IMGS/222.PNG": {
+    "320": "/optimized/workshops-imgs-222-320-0d67402eb8ba.webp",
+    "640": "/optimized/workshops-imgs-222-640-b36365b32505.webp",
+    "960": "/optimized/workshops-imgs-222-960-9c6215387ec8.webp",
+    "1179": "/optimized/workshops-imgs-222-1179-41b54751c21c.webp"
+  },
+  "/WORKSHOPS IMGS/workshop 2.jpeg": {
+    "320": "/optimized/workshops-imgs-workshop-2-320-021b40c1067e.webp",
+    "640": "/optimized/workshops-imgs-workshop-2-640-62b33b11b491.webp",
+    "960": "/optimized/workshops-imgs-workshop-2-960-734fa72228ba.webp",
+    "1280": "/optimized/workshops-imgs-workshop-2-1280-524238494634.webp"
+  },
+  "/WORKSHOPS IMGS/Inside 1.jpg": {
+    "320": "/optimized/workshops-imgs-inside-1-320-7ad44db8deb1.webp",
+    "640": "/optimized/workshops-imgs-inside-1-640-0d176c5b10d7.webp",
+    "960": "/optimized/workshops-imgs-inside-1-960-faa62ab17ad3.webp",
+    "1080": "/optimized/workshops-imgs-inside-1-1080-872099f34627.webp"
+  },
+  "/WORKSHOPS IMGS/Inside 2.jpg": {
+    "320": "/optimized/workshops-imgs-inside-2-320-6558e136063b.webp",
+    "640": "/optimized/workshops-imgs-inside-2-640-b92b5cd9f01b.webp",
+    "960": "/optimized/workshops-imgs-inside-2-960-7a76cd32bf4d.webp",
+    "1217": "/optimized/workshops-imgs-inside-2-1217-b9e41d1ff471.webp"
+  },
+  "/DIY FIXED1.PNG": {
+    "320": "/optimized/diy-fixed1-320-5b314174987e.webp",
+    "640": "/optimized/diy-fixed1-640-32c828998807.webp",
+    "960": "/optimized/diy-fixed1-960-dbdf0b82ee67.webp",
+    "1254": "/optimized/diy-fixed1-1254-ed935ba72807.webp"
+  },
+  "/DIY FIXED2.PNG": {
+    "320": "/optimized/diy-fixed2-320-01ee1975c0de.webp",
+    "640": "/optimized/diy-fixed2-640-810cacb472de.webp",
+    "960": "/optimized/diy-fixed2-960-5c8cc427544f.webp",
+    "1254": "/optimized/diy-fixed2-1254-c65227385ddf.webp"
+  },
+  "/diy.PNG": {
+    "320": "/optimized/diy-320-0f3d866b38bf.webp",
+    "640": "/optimized/diy-640-5023e8773ed2.webp",
+    "960": "/optimized/diy-960-7b875a5b8689.webp",
+    "1179": "/optimized/diy-1179-284cec23ef92.webp"
+  },
+  "/WORKSHOPS IMGS/brush-workshop-gallery.webp": {
+    "320": "/optimized/workshops-brush-gallery-320-9b53f4ea912f.webp",
+    "640": "/optimized/workshops-brush-gallery-640-9fe9e394eb3a.webp",
+    "960": "/optimized/workshops-brush-gallery-960-3716140843b5.webp",
+    "1280": "/optimized/workshops-brush-gallery-1280-bd359e3b13e8.webp"
+  },
+  "/DIY welcome.jpg": {
+    "236": "/optimized/diy-welcome-236-57eb25db30bc.webp"
+  }
+}

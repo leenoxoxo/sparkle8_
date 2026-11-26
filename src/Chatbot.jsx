@@ -1,6 +1,9 @@
+import {cakeShop} from './range-pricing.js';
 import React, { useEffect, useRef, useState } from 'react';
 import { X, Send, Sparkles } from 'lucide-react';
 import './chatbot.css';
+import {useCart} from './Cart.jsx';
+import {kits} from './kits.js';
 
 export function answerQuestion(question, { products, workshops, kits, t, arabic }) {
   const q = question.toLowerCase().replace(/[أإآ]/g, 'ا');
@@ -10,20 +13,21 @@ export function answerQuestion(question, { products, workshops, kits, t, arabic 
   if (/refund|return|cancel|ارجاع|استرجاع|الغاء/.test(q)) return reply(say('Contact Sparkle with your order reference for help with cancellations or returns.', 'تواصلي مع سباركل وأرسلي رقم الطلب للمساعدة في الإلغاء أو الاسترجاع.'), '/contact');
   if (/date|when|schedule|next|موعد|متى|تاريخ/.test(q) && /workshop|ورش/.test(q)) return reply(say('Workshop dates and available seats must be confirmed through the latest Instagram announcement. You can browse the workshop types here.', 'يجب تأكيد مواعيد الورش والمقاعد المتاحة من خلال أحدث إعلان على إنستغرام. يمكنك استعراض أنواع الورش هنا.'), '/workshops');
   const item = [...products, ...workshops, ...kits].find(p => q.includes(p.name.toLowerCase()) || q.includes(t(p.name).toLowerCase().replace(/[أإآ]/g, 'ا')));
-  if (item) return reply([t(item.name), t(item.description), item.price ? t(item.price) : say('Message us for pricing.', 'راسلينا لمعرفة السعر.'), item.time ? t(item.time) : '', item.status ? t(item.status) : '', ...(item.includes || []).map(t)].filter(Boolean).join('\n'), item.slug ? (workshops.includes(item) ? '/workshops/' : '/shop/') + item.slug : '/diy-kits');
+  if (item) return reply([t(item.name), t(item.description), item.price ? t(item.price) : say('Message us for pricing.', 'راسلينا لمعرفة السعر.'), item.time ? t(item.time) : '', item.status ? t(item.status) : '', ...(item.includes || []).map(t)].filter(Boolean).join('\n'), item.slug ? (workshops.includes(item) ? '/workshops/' : '/shop/') + item.slug : '/shop?tab=kits');
   if (/workshop|class|session|ورش|دوره|دورة|حجز/.test(q)) return reply(workshops.map(w => [t(w.name), t(w.price), t(w.time), t(w.status)].join(' · ')).join('\n\n') + '\n\n' + say('Materials and tools are included. Confirm dates and reserve through Instagram.', 'المواد والأدوات مشمولة. أكدي المواعيد واحجزي عبر إنستغرام.'), '/workshops');
-  if (/diy|kit|طقم|اطقم|اصنعي|بنفس/.test(q)) return reply(kits.map(k => t(k.name) + ': ' + t(k.price) + '\n' + t(k.description)).join('\n\n'), '/diy-kits');
-  if (/custom|box|boxes|cake|مخصص|علب|كيك/.test(q)) return reply(say('Our fake cake boxes can be customized with your colors and decorations. The shop lists boxes from ₪60; final pricing depends on the details. Order at least one week before you need it and confirm your design on Instagram.', 'يمكن تخصيص علب الكيك الوهمي بالألوان والزينة التي تختارينها. يبدأ السعر المدرج في المتجر من 60 شيكل ويتغير حسب التفاصيل. اطلبي قبل أسبوع على الأقل وأكدي التصميم عبر إنستغرام.'), '/custom-orders');
+  if (/diy|kit|طقم|اطقم|اصنعي|بنفس/.test(q)) return reply(kits.map(k => t(k.name) + ': ' + t(k.price) + '\n' + t(k.description)).join('\n\n'), '/shop?tab=kits');
+  if (/custom|box|boxes|cake|مخصص|علب|كيك/.test(q)) return reply(say('Explore Sparkle’s Fake Cake Boxes in the Shop. Custom designs and final pricing can be discussed through WhatsApp.', 'استكشفي علب الكيك الوهمية في المتجر. يمكن الاتفاق على التصميم والسعر النهائي عبر واتساب.'), cakeShop);
   if (/price|cost|how much|سعر|اسعار|بكم|كم/.test(q)) return reply(products.map(p => t(p.name) + ': ' + t(p.price || 'Message us')).join('\n'), '/shop');
   if (/where|location|address|اين|وين|موقع|عنوان/.test(q)) return reply(say('Sparkle is based in Nablus, Palestine. Message us on Instagram to confirm the exact workshop venue or collection arrangements.', 'سباركل في نابلس، فلسطين. راسلينا على إنستغرام لتأكيد مكان الورشة أو ترتيبات الاستلام.'));
-  if (/order|buy|purchase|contact|instagram|طلب|اشتري|شراء|تواصل|انست/.test(q)) return reply(say('Add your items to the cart, choose Cash on Delivery at checkout, then send your saved order in WhatsApp for confirmation.', 'أضيفي منتجاتك إلى السلة واختاري الدفع عند الاستلام، ثم أرسلي طلبك المحفوظ في واتساب لتأكيده.'), '/how-to-order');
+  if (/order|buy|purchase|contact|instagram|طلب|اشتري|شراء|تواصل|انست/.test(q)) return reply(say('Add your items to the cart and place your Cash on Delivery order. Then use its reference to confirm it via WhatsApp.', 'أضيفي منتجاتك إلى السلة وسجّلي طلبك بالدفع عند الاستلام. ثم استخدمي رقم الطلب لتأكيده عبر واتساب.'), '/how-to-order');
   if (/product|shop|available|منتج|متجر|متوفر/.test(q)) return reply(say('Explore our handmade phone cases, mirrors, brushes, and fake cake boxes. Send the product name to ask about its listed details.', 'استكشفي أغطية الهواتف والمرايا والفُرش وعلب الكيك الوهمي المصنوعة يدوياً. أرسلي اسم المنتج للسؤال عن تفاصيله.'), '/shop');
   if (/^(hi|hello|hey|مرحبا|اهلا|سلام)[! .؟?]*$/.test(q)) return reply(say('Hello! Ask me about products, workshop prices, DIY kits, custom boxes, or how to order.', 'مرحباً! اسأليني عن المنتجات وأسعار الورش وأطقم اصنعيها بنفسك والعلب المخصصة وطريقة الطلب.'));
   return reply(say('I could not find an answer in the shop information. Try a product name or ask about workshops, prices, DIY kits, or ordering. For other questions, Sparkle can help on Instagram.', 'لم أجد إجابة في معلومات المتجر. جرّبي اسم منتج أو اسألي عن الورش والأسعار والأطقم وطريقة الطلب. للأسئلة الأخرى، تواصلي مع سباركل على إنستغرام.'));
 }
 
-export default function Chatbot({ lang, t, products, workshops, kits, instagram, navigate }) {
-  const [open, setOpen] = useState(false);
+export default function Chatbot({ lang, t, products, workshops, instagram, navigate, initialOpen=false }) {
+  const cart=useCart();
+  const [open, setOpen] = useState(initialOpen);
   const [input, setInput] = useState('');
   const [messages, setMessages] = useState([]);
   const inputRef = useRef(null), triggerRef = useRef(null), logRef = useRef(null);
@@ -37,6 +41,8 @@ export default function Chatbot({ lang, t, products, workshops, kits, instagram,
     const answer = answerQuestion(question, { products, workshops, kits, t, arabic });
     setMessages(previous => [...previous, { text:question, user:true }, answer]); setInput('');
   };
+  useEffect(() => {if(cart.open) setOpen(false);},[cart.open]);
+  if (cart.open) return null;
   return <aside className="sparkle-chat" dir={arabic ? 'rtl' : 'ltr'}>
     {open && <section className="chat-panel" id="sparkle-chat-panel" role="dialog" aria-label={say('Sparkle help', 'مساعدة سباركل')} onKeyDown={event => { if (event.key === 'Escape') close(); }}>
       <div className="chat-heading"><Sparkles size={20}/><div><strong>{say('Ask Sparkle', 'اسألي سباركل')}</strong><small>{say('Shop information assistant', 'مساعد معلومات المتجر')}</small></div><button type="button" onClick={close} aria-label={say('Close chat', 'إغلاق المحادثة')}><X size={20}/></button></div>
@@ -48,6 +54,6 @@ export default function Chatbot({ lang, t, products, workshops, kits, instagram,
       <form className="chat-form" onSubmit={event => { event.preventDefault(); send(input); }}><input ref={inputRef} value={input} onChange={event => setInput(event.target.value)} maxLength={500} placeholder={say('Ask a question…', 'اكتبي سؤالك…')} aria-label={say('Your question', 'سؤالك')}/><button type="submit" disabled={!input.trim()} aria-label={say('Send question', 'إرسال السؤال')}><Send size={18}/></button></form>
       <a className="chat-contact" href={instagram} target="_blank" rel="noreferrer">{say('Need more help? Message us on Instagram', 'لمزيد من المساعدة، راسلينا على إنستغرام')} ↗</a>
     </section>}
-    <button className="chat-launcher" ref={triggerRef} type="button" aria-expanded={open} aria-controls="sparkle-chat-panel" onClick={() => open ? close() : setOpen(true)}><Sparkles size={24} strokeWidth={2} aria-hidden="true"/><span>{say('Ask Sparkle', 'اسألي سباركل')}</span></button>
+    <button className="chat-launcher" ref={triggerRef} type="button" aria-label={say('Ask Sparkle','اسألي سباركل')} aria-expanded={open} aria-controls="sparkle-chat-panel" onClick={() => open ? close() : setOpen(true)}><Sparkles size={24} strokeWidth={2} aria-hidden="true"/><span>{say('Ask Sparkle', 'اسألي سباركل')}</span></button>
   </aside>;
 }

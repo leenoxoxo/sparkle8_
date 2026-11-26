@@ -6,7 +6,17 @@ export function priceCents(value) {
 }
 export const money = cents => '₪' + (cents / 100).toLocaleString('en-US', {maximumFractionDigits:2});
 export const validQuantity = quantity => Number.isSafeInteger(quantity) && quantity >= 1 && quantity <= 999;
-export const itemKey = (productId, variantId) => JSON.stringify([productId, variantId || null]);
+export function cartPrices(items) {
+  const fixedTotal = items.reduce((sum,item) => sum + (item.unitPrice ?? 0)*item.quantity,0);
+  if (!items.some(item=>item.minPrice != null)) return {total:fixedTotal};
+  return {
+    total:null,
+    estimatedMin:items.reduce((sum,item)=>sum+(item.minPrice ?? item.unitPrice)*item.quantity,0),
+    estimatedMax:items.reduce((sum,item)=>sum+(item.maxPrice ?? item.unitPrice)*item.quantity,0)
+  };
+}
+export const itemKey = (productId, variantId, kitChoices = []) => JSON.stringify(kitChoices.length ?
+  [productId,variantId || null,kitChoices] : [productId,variantId || null]);
 export function resolveItem(catalog, raw) {
   if (!raw || !validQuantity(raw.quantity)) return null;
   const base = catalog.find(product => product.slug === raw.productId);
@@ -15,9 +25,13 @@ export function resolveItem(catalog, raw) {
   if (base.variants?.length && !variant) return null;
   if (!base.variants?.length && raw.variantId) return null;
   const product = variant ? {...base, ...variant} : base;
-  const cents = priceCents(product.price);
-  if (cents === null || product.status === 'Sold Out' || product.purchasable === false) return null;
-  return {key:itemKey(base.slug,variant?.id),productId:base.slug,variantId:variant?.id || null,name:base.name,variantName:variant?.name || null,image:product.image,colors:variant?.colors,unitPrice:cents,originalPrice:priceCents(product.originalPrice),quantity:raw.quantity};
+  const choices = Array.isArray(raw.kitChoices) ? [...raw.kitChoices].sort() : [];
+  if (base.kitOptions?.length ? choices.length !== (base.kitPieces || 1) || choices.some(choice=>!base.kitOptions.includes(choice)) : choices.length) return null;
+  const range = base.priceMode === 'range';
+  const cents = range ? null : priceCents(product.price);
+  if ((!range && cents === null) || product.status === 'Sold Out' || product.purchasable === false) return null;
+  return {key:itemKey(base.slug,variant?.id,choices),productId:base.slug,variantId:variant?.id || null,kitChoices:choices,name:base.name,variantName:variant?.name || null,image:variant?.image || base.image,option:variant && {name:variant.name,nameAr:variant.nameAr,choices:variant.choices},colors:variant?.colors,unitPrice:cents,originalPrice:priceCents(product.originalPrice),quantity:raw.quantity,
+    ...(range && {minPrice:base.minPrice,maxPrice:base.maxPrice})};
 }
 export function restoreCart(catalog, saved) {
   if (!Array.isArray(saved)) return [];

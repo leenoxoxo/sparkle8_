@@ -1,3 +1,4 @@
+import {adminReport} from './backoffice.js';
 import pg from 'pg';
 import {databaseError, HttpError} from './errors.js';
 
@@ -27,12 +28,17 @@ export function repository(pool) {
   const json = JSON.stringify;
   return {
     catalog: (publishedOnly = false) => rows(`
-      select p.*, coalesce(s.skus,'[]'::jsonb) as catalog_skus
+      select p.*, coalesce(s.skus,'[]'::jsonb) as catalog_skus,
+        case when $1 then public.sparkle_quantity_active(p.slug) end as quantity_promotion
       from public.catalog_products p
-      left join lateral (select jsonb_agg(to_jsonb(s) || case when $1 then jsonb_build_object('sale_price',
-          public.sparkle_active_price(p.slug,p.presentation->>'category',s.base_price,public.sparkle_direct_price(p.presentation,s.sale_price))) else '{}'::jsonb end order by s.variant) as skus
-        from public.catalog_skus s where s.product_slug = p.slug) s on true
-      where (not $1::boolean or (p.published and not p.archived)) order by p.slug
+      left join lateral (select jsonb_agg(to_jsonb(s) || case when $1 then jsonb_build_object(
+          'base_price',effective.base_price,'sale_price',
+          public.sparkle_active_price(p.slug,p.presentation->>'category',effective.base_price,public.sparkle_direct_price(p.presentation,s.sale_price)))
+          else '{}'::jsonb end order by s.variant) as skus
+        from public.catalog_skus s
+        cross join lateral (select public.sparkle_variant_base(p.presentation,s.variant,s.base_price) as base_price) effective
+        where s.product_slug = p.slug) s on true
+      where (not $1::boolean or (p.published and not p.archived and public.sparkle_category_visible(p.presentation->>'category'))) order by p.slug
     `,[publishedOnly]),
     productSlugs: () => rows('select slug from public.catalog_products'),
     saveProduct: (target, product, skus, createOnly = false) => rows('select public.sparkle_admin_save_product($1,$2,$3,$4)',[target,json(product),json(skus),createOnly]),
@@ -47,43 +53,85 @@ export function repository(pool) {
       on conflict(code) do update set name=excluded.name,name_ar=excluded.name_ar,
         region=excluded.region,fee=excluded.fee,active=excluded.active,selectable=excluded.selectable
     `,[area.code,area.name,area.name_ar,area.region,area.fee,area.active,area.selectable]),
-    quote: (items,area) => value('select public.sparkle_quote($1,$2) as result',[json(items),area]),
-    submit: ({submission,items,customer,expected,language}) => one('select * from public.sparkle_submit($1,$2,$3,$4,$5)',
+    quote: items => value('select public.sparkle_quote($1) as result',[json(items)]),
+    submit: ({submission,items,customer,expected,language}) => one('select * from public.sparkle_submit_whatsapp($1,$2,$3,$4,$5)',
       [submission,json(items),json(customer),json(expected),language]),
     order: token => one('select reference,snapshot from public.shop_orders where submission=$1',[token]),
-    orders: offset => rows(`
+    orders: (offset,group,{search=null,from=null,to=null,status=null,paid=null,sort='recent'}={}) => rows(`
       select o.*, coalesce(e.events,'[]'::jsonb) as order_events from public.shop_orders o
       left join lateral (select jsonb_agg(jsonb_build_object('event',event,'created_at',created_at) order by id) as events
         from public.order_events e where e.order_id=o.id) e on true
-      order by o.created_at desc,o.id desc limit 50 offset $1`,[offset]),
+      where ($2::text is null or ($2='confirmed' and o.status not in ('Pending','Cancelled'))
+        or ($2 in ('pending','processed') and (o.status='Pending')=($2='pending')))
+        and ($3::text is null or strpos(lower(trim(concat_ws(' ',o.snapshot->'customer'->>'name',
+          o.snapshot->'customer'->>'firstName',o.snapshot->'customer'->>'lastName'))),lower($3))>0
+          or strpos(lower(case when o.snapshot->'customer'->>'referenceFormat'='SP'
+            then 'SP-' || lpad(o.reference::text,greatest(6,length(o.reference::text)),'0')
+            else '#SPK-' || lpad(o.reference::text,greatest(4,length(o.reference::text)),'0') end),lower($3))>0
+          or strpos(lower(coalesce(o.snapshot->'customer'->>'city',o.snapshot->'destination'->>'name','')),lower($3))>0
+          or (regexp_replace($3,'[^0-9]','','g')<>'' and exists(
+            select 1 from (values (coalesce(o.customer_phone,o.snapshot->'customer'->>'phone','')),
+              (coalesce(o.snapshot->'customer'->>'alternativePhone',''))) contact(phone)
+            where strpos(regexp_replace(contact.phone,'[^0-9]','','g'),
+              nullif(regexp_replace(regexp_replace(regexp_replace($3,'[^0-9]','','g'),'^00',''),'^05','5'),''))>0)))
+        and ($4::date is null or o.created_at>=($4::date::timestamp at time zone 'Asia/Hebron'))
+        and ($5::date is null or o.created_at<(($5::date+1)::timestamp at time zone 'Asia/Hebron'))
+        and ($6::text is null or o.status=$6) and ($7::boolean is null or o.paid=$7)
+      order by case when $8='oldest' then o.created_at end asc,
+        case when $8='highest' then (o.snapshot->>'total')::bigint end desc nulls last,
+        o.created_at desc,o.id desc limit 50 offset $1`,[offset,group,search,from,to,status,paid,sort]),
+    updateOrderNotes: (id,notes) => one('update public.shop_orders set admin_notes=$2 where id=$1 returning id',[id,notes]),
+    updateDirectCosts: (id,delivery,costs) => one(`update public.shop_orders set delivery_expense=$2,actual_unit_costs=$3::jsonb
+      where id=$1 and not exists(select 1 from jsonb_object_keys($3::jsonb) key where key::int > jsonb_array_length(snapshot->'lines'))
+      returning id`,[id,delivery,json(costs)]),
+    bulkProducts: (targets,changes) => rows('select public.sparkle_bulk_edit_products($1,$2)',[targets,json(changes)]),
+    updateDelivery: (id,details,fee,prices) => one(
+      'select public.sparkle_order_delivery($1,$2,$3,$4) as id',[id,details,fee,prices == null ? null : json(prices)]),
     transition: (id,status,actor) => one('select * from public.sparkle_transition($1,$2,$3)',[id,status,actor]),
-    createRequest: details => one('insert into public.custom_requests(details) values($1) returning id',[json(details)]),
     requests: offset => rows('select * from public.custom_requests order by created_at desc,id desc limit 50 offset $1',[offset]),
     saveRequest: (id,status,quote) => rows('update public.custom_requests set status=$2,quote=$3 where id=$1',[id,status,quote]),
     settings: () => one('select whatsapp from public.shop_settings where singleton'),
     setWhatsapp: whatsapp => rows('update public.shop_settings set whatsapp=$1 where singleton',[whatsapp]),
     stats: () => value('select public.sparkle_stats() as result'),
-    categories: () => rows(`select name,max(name_ar) as name_ar,sum(products)::int as products from (
-      select name,name_ar,0 as products from public.shop_categories union all
-      select presentation->>'category',coalesce(presentation->>'categoryAr',''),1
-      from public.catalog_products where not archived
-      ) categories group by name order by name`),
-    renameCategory: (from,to,ar) => rows(`with renamed as (
+    categories: () => rows(`with products as (
+      select presentation->>'category' as name, max(presentation->>'categoryAr') as name_ar,count(*)::int as products
+      from public.catalog_products where not archived group by 1
+      ) select coalesce(c.name,p.name) as name,coalesce(c.name_ar,p.name_ar,'') as name_ar,c.parent,c.image,
+      coalesce(c.section,'ready') as section,coalesce(c.display_order,0) as display_order,
+      coalesce(c.published,true) as published,coalesce(p.products,0) as products,
+      c.description,c.description_ar,coalesce(c.section_intro,false) as section_intro
+      from public.shop_categories c full join products p using(name) order by display_order,name`),
+    renameCategory: (from,to,ar,metadata) => rows(`with renamed as (
       update public.catalog_products set presentation=jsonb_set(jsonb_set(presentation,'{category}',to_jsonb($2::text)),'{categoryAr}',to_jsonb($3::text))
       where presentation->>'category'=$1 returning slug
     ), promotions as (
       update public.shop_promotions set targets=array_replace(targets,$1,$2)
       where scope='category' and $1=any(targets) returning id
+    ), children as (
+      update public.shop_categories set parent=$2 where parent=$1 and $1<>$2 returning name
     ), old as (
       delete from public.shop_categories where name=$1 and name<>$2 returning name
-    ) insert into public.shop_categories(name,name_ar) values($2,$3)
-      on conflict(name) do update set name_ar=excluded.name_ar`,[from,to,ar]),
+    ) insert into public.shop_categories(name,name_ar,parent,section,published,display_order,image,description,description_ar,section_intro)
+      select $2,$3,$4,$5,$6,$7,$8,$9,$10,$11 from (select count(*) from old) as removed
+      on conflict(name) do update set name_ar=excluded.name_ar,parent=excluded.parent,section=excluded.section,
+      published=excluded.published,display_order=excluded.display_order,image=excluded.image,
+      description=excluded.description,description_ar=excluded.description_ar`,
+      [from,to,ar,metadata.parent,metadata.section,metadata.published,metadata.displayOrder,metadata.image,metadata.description,metadata.descriptionAr,metadata.sectionIntro]),
     content: section => rows('select key,body from public.shop_content where section=$1 order by key',[section]),
+    saveHomepage: (value,publish) => rows(`insert into public.shop_content(section,key,body)
+      select 'website', version, jsonb_build_object('published',version='homepage-live','config',$1::jsonb)
+      from unnest(case when $2::boolean then array['homepage-draft','homepage-live'] else array['homepage-draft'] end) version
+      on conflict(section,key) do update set body=excluded.body`,[json(value),publish]),
     saveContent: (section,key,body) => rows(`insert into public.shop_content(section,key,body) values($1,$2,$3)
       on conflict(section,key) do update set body=excluded.body`,[section,key,json(body)]),
     registrations: () => rows('select * from public.workshop_registrations order by created_at desc limit 250'),
-    registerWorkshop: (key,name,phone) => value('select public.sparkle_register_workshop($1,$2,$3) as result',[key,name,phone]),
     promotions: () => rows('select * from public.shop_promotions order by name,id'),
+    quantityPromotions: () => rows(`
+      select q.*, (public.sparkle_quantity_active(q.product_slug)->>'id'=q.id::text
+        and p.published and not p.archived and public.sparkle_category_visible(p.presentation->>'category')) is true as storefront_active
+      from public.quantity_promotions q join public.catalog_products p on p.slug=q.product_slug
+      order by q.archived,q.product_slug,q.starts_at nulls first,q.id`),
+    saveQuantityPromotion: (id,draft) => rows('select public.sparkle_save_quantity_promotion($1,$2)',[id,json(draft)]),
     savePromotion: (id,p) => rows(`insert into public.shop_promotions(id,name,scope,targets,type,amount,starts,ends,active)
       values($1,$2,$3,$4,$5,$6,$7,$8,$9) on conflict(id) do update set name=excluded.name,scope=excluded.scope,
       targets=excluded.targets,type=excluded.type,amount=excluded.amount,starts=excluded.starts,ends=excluded.ends,active=excluded.active`,
@@ -91,45 +139,33 @@ export function repository(pool) {
     movements: () => rows(`select m.*, p.presentation->>'name' as name
       from public.stock_movements m join public.catalog_products p on p.slug=m.product_slug
       order by m.id desc limit 250`),
-    customers: () => rows(`select regexp_replace(snapshot->'customer'->>'phone','[^0-9]','','g') as phone_key,
-      (array_agg(snapshot->'customer' order by created_at desc))[1] as customer,
-      jsonb_agg(jsonb_build_object('reference',reference,'status',status,'paid',paid,'total',snapshot->'total','date',created_at)
-        order by created_at desc) as orders
-      from public.shop_orders group by 1 order by max(created_at) desc`),
-    report: (from,to) => value(`
-      with filtered as (
-        select *, (created_at at time zone 'Asia/Hebron')::date as day, (snapshot->>'total')::bigint as total
-        from public.shop_orders
-        where ($1::date is null or (created_at at time zone 'Asia/Hebron')::date >= $1)
-          and ($2::date is null or (created_at at time zone 'Asia/Hebron')::date <= $2)
-      ), days as (
-        select day,count(*) as orders,
-          coalesce(sum(total) filter(where status not in ('Pending','Cancelled')),0) as sales,
-          coalesce(sum(total) filter(where paid),0) as revenue
-        from filtered group by day
-      ), best as (
-        select line->>'name' as name,sum((line->>'quantity')::int) as units
-        from filtered cross join lateral jsonb_array_elements(snapshot->'lines') line
-        where status not in ('Pending','Cancelled') group by 1 order by units desc limit 10
-      ), margins as (
-        select sum(((line->>'unitPrice')::bigint-(line->>'cost')::bigint)*(line->>'quantity')::int) as value,
-          count(*) as lines
-        from filtered cross join lateral jsonb_array_elements(snapshot->'lines') line
-        where paid and line->>'cost' is not null
-      )
-      select jsonb_build_object(
-        'products',(select count(*) from public.catalog_products where not archived),
-        'published',(select count(*) from public.catalog_products where published and not archived),
-        'statuses',(select coalesce(jsonb_object_agg(status,n),'{}') from (select status,count(*) n from filtered group by status) s),
-        'sales',coalesce(sum(total) filter(where status not in ('Pending','Cancelled')),0),
-        'revenue',coalesce(sum(total) filter(where paid),0),
-        'outstanding',coalesce(sum(total) filter(where not paid and status not in ('Pending','Cancelled')),0),
-        'margin',(select value from margins),'costedLines',(select lines from margins),
-        'days',(select coalesce(jsonb_agg(days order by day),'[]') from days),
-        'best',(select coalesce(jsonb_agg(best order by units desc),'[]') from best),
-        'recent',(select coalesce(jsonb_agg(r),'[]') from
-          (select reference,status,paid,total,created_at from filtered order by created_at desc limit 8) r)
-      ) as result from filtered`,[from,to]),
+    customers: (offset=0,search=null,filter=null) => rows(`with totals as (
+      select c.*, min(o.created_at) as first_order,max(o.created_at) as last_order,count(o.id)::int as order_count,
+        coalesce(sum((o.snapshot->>'total')::bigint) filter(where o.status not in ('Pending','Cancelled')),0) as confirmed_total,
+        coalesce(sum((o.snapshot->>'total')::bigint) filter(where o.paid),0) as completed_total
+      from public.shop_customers c left join public.shop_orders o on o.customer_phone=c.phone
+      where $2::text is null or strpos(lower(c.first_name || ' ' || c.last_name),lower($2))>0
+        or (regexp_replace($2,'[^0-9]','','g')<>'' and strpos(c.phone,
+          nullif(regexp_replace(regexp_replace(regexp_replace($2,'[^0-9]','','g'),'^00',''),'^05','5'),''))>0)
+      group by c.phone
+    ), page as (
+      select * from totals where $3::text is null or ($3='returning' and order_count>1)
+        or ($3='outstanding' and confirmed_total>completed_total) or ($3='collected' and completed_total>0)
+      order by last_order desc nulls last,phone limit 50 offset $1
+    ) select page.*,latest.contact,coalesce(history.orders,'[]'::jsonb) as orders from page
+    left join lateral (
+      select snapshot->'customer' as contact from public.shop_orders
+      where customer_phone=page.phone order by created_at desc,id desc limit 1
+    ) latest on true left join lateral (
+      select jsonb_agg(jsonb_build_object('reference',o.reference,'status',o.status,'paid',o.paid,'total',o.snapshot->'total',
+        'estimatedMin',o.snapshot->'estimatedMin','estimatedMax',o.snapshot->'estimatedMax',
+        'referenceFormat',o.snapshot->'customer'->>'referenceFormat','date',o.created_at)
+        order by o.created_at desc) as orders from (
+          select * from public.shop_orders where customer_phone=page.phone order by created_at desc limit 20
+        ) o
+    ) history on true order by last_order desc nulls last,phone`,[offset,search,filter]),
+    saveCustomerNotes: (phone,notes) => one('update public.shop_customers set admin_notes=$2 where phone=$1 returning phone',[phone,notes]),
+    report: (from,to,summary=false) => value(adminReport,[from,to,summary]),
     adminByEmail: email => one('select user_id,email,password_hash from public.admin_members where email=$1 and active',[email]),
     activeAdmin: id => one('select user_id,email from public.admin_members where user_id=$1 and active',[id])
   };

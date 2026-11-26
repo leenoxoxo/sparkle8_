@@ -1,0 +1,11 @@
+.product-option-groups { display: grid; gap: .65rem; margin-block: 1rem; min-width: 0; }
+.product-option-groups label { margin: 0; font-size: .88rem; font-weight: 700; }
+.product-option-groups select { width: 100%; min-width: 0; min-height: 44px; background: var(--paper); color: var(--ink); border: 1px solid var(--line); border-radius: 10px; padding: .45rem .6rem; }
+.product-option-groups .product-variants { margin: 0; min-width: 0; }
+.product-option-groups .button { justify-self: start; }
+.product-option-groups p, .product-option-groups small { color: var(--muted); font-size: .8rem; }
+.product-variants button:disabled { opacity: .45; cursor: not-allowed; }
+.product-variants .color-swatch:disabled { position: relative; }
+.product-variants .color-swatch:disabled::after { content: ''; position: absolute; height: 2px; width: 84%; inset-inline-start: 8%; top: 50%; background: var(--ink); transform: rotate(-42deg); }
+.variant-hex span { display: grid; grid-template-columns: 48px minmax(0,1fr); gap: .5rem; }
+.variant-hex input[type=color] { padding: .2rem; cursor: pointer; }

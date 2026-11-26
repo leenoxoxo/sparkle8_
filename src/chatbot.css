@@ -7,6 +7,27 @@
 .chat-log{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding:16px;display:flex;flex-direction:column;gap:12px}
 .chat-message{white-space:pre-wrap;overflow-wrap:anywhere;padding:12px;border-radius:14px;background:var(--blush);max-width:94%;line-height:1.55;flex-shrink:0}
 .chat-user{align-self:flex-end;background:var(--rose);color:var(--paper)}
+.header .sparkle-chat{position:relative;inset:auto;z-index:auto;flex-shrink:0}
+.header .chat-launcher{min-height:36px;padding:.45rem .65rem;box-shadow:none}
+.header .chat-launcher svg{width:18px;height:18px}
+.header .chat-panel{position:absolute;inset-block-start:calc(100% + 10px);inset-inline-end:0;margin:0;z-index:70}
+@media(max-width:1100px){
+  .header .chat-launcher{width:36px;height:36px;padding:0;justify-content:center;box-shadow:none}
+  .header .chat-launcher span{display:none}
+  .header .chat-panel{position:fixed;inset:88px 8px auto auto}
+  [dir=rtl] .header .chat-panel{right:auto;left:8px}
+}
+@media(max-width:380px){
+  html .header .nav-wrap{display:grid;grid-template-columns:minmax(0,1fr) auto;padding-inline:8px;gap:5px}
+  html .header .nav-tools{gap:3px}
+  html .header .brand{min-width:0;justify-self:start;font-size:1.35rem;gap:4px}
+  html .header .brand-mark{width:19px;height:19px}
+  html .header .chat-launcher{width:32px;height:32px}
+  html .header .nav-tools .cart-header-button,
+  html .header .nav-tools .mood-toggle,
+  html .header .nav-tools .lang-mini,
+  html .header .nav-tools .menu-toggle{width:32px;min-width:32px;height:32px}
+}
 .chat-message a{display:block;margin-top:8px;text-decoration:underline;color:var(--rose)}
 .chat-suggestions{display:flex;flex-wrap:wrap;gap:6px;padding:8px 12px}
 .chat-suggestions button{border:1px solid var(--line);border-radius:99px;background:transparent;padding:6px 10px;font-size:12px;cursor:pointer}

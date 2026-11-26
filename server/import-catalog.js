@@ -54,6 +54,8 @@ export async function catalogImportPlan(urls = new Map(), files = null) {
   const kitProducts = kits.map((kit,i) => ({...kit,kind:'kit',featured:false,category:'DIY Kits',
     tone:'cream',icon:'🎀',image:'/DIY%20FIXED1.PNG',details:kit.includes,addedOrder:22+i,defaultOrder:22+i}));
   const products = [...legacyProducts,...kitProducts].map(p => {
+    const cakeBox = p.category === 'Boxes' && /cake.*box/i.test(p.slug+' '+p.name);
+    const madeToOrder = p.slug === 'fake-cake-box' && p.price === '₪60+';
     const options = p.variants?.length ? p.variants : [{...p,id:''}];
     const gallery = [p.image,...(p.images ?? [])].filter(Boolean).map(imageUrl);
     const skus = options.map(option => {
@@ -63,9 +65,11 @@ export async function catalogImportPlan(urls = new Map(), files = null) {
     });
     const {skus: validatedSkus, ...product} = productInput(p.slug,{
       published:true,archived:false,skus,
-      presentation:{...p,nameAr:ar(p.name),descriptionAr:ar(p.description),categoryAr:ar(p.category),collectionAr:ar(p.collection),
+      presentation:{...p,nameAr:ar(p.name),descriptionAr:ar(p.description),
+        category:cakeBox ? 'Fake Cake Boxes' : p.category,categoryAr:cakeBox ? 'علب كيك وهمية' : ar(p.category),collectionAr:ar(p.collection),
         featured:featured.has(p.slug),images:gallery,displayPrice:p.price,
         priceMode:p.price.endsWith('+') ? 'starting' : priceCents(p.price) == null ? 'quote' : 'exact',
+        ...(madeToOrder && {priceMode:'range',minPrice:8000,maxPrice:14000,trackStock:false,madeToOrder:true}),
         variants:p.variants?.map(option => ({...option,nameAr:ar(option.name),displayPrice:option.price,
           images:[option.image,...(option.images ?? [])].filter(Boolean).map(imageUrl)}))}
     });

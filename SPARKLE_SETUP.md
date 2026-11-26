@@ -46,7 +46,7 @@ npm.cmd run catalog:import -- --apply
 
 The first command validates the source files. The second uploads original images to Cloudinary, checks their downloaded bytes against the originals, and adds missing catalog records to Neon. Source images stay in the repository. Existing catalog records are preserved on rerun. If you already have products, orders, or uploads in an old hosted database, arrange a data migration before switching services. The catalog importer seeds repository data.
 
-Open two project terminals. Run `npm.cmd run api` in the first and `npm.cmd run dev -- --strictPort` in the second. Visit [the local admin dashboard](http://localhost:5173/admin) and sign in. Enter verified stock for items you want customers to order. Under **Delivery & WhatsApp**, add the supported cities and villages in English and Arabic, assign fees, and verify the default number **+970 594 503 571**. For regional pricing, add a parent region first, clear its checkout visibility if appropriate, and leave child fees blank to inherit it.
+Open two project terminals. Run `npm.cmd run api` in the first and `npm.cmd run dev -- --strictPort` in the second. Visit [the local admin dashboard](http://localhost:5173/admin) and sign in. Enter verified stock for items you want customers to order. After a test order is saved, open **Orders → Pending orders**. Use the customer’s WhatsApp number to confirm delivery, then enter the information and fee on the order. Checkout uses **+970 594 503 571** as the business number.
 
 ## 4. Verify and host staging
 

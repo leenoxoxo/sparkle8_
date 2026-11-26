@@ -1,7 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {priceCents,restoreCart,resolveItem,orderSummary,validQuantity} from '../src/cart-model.js';
+import {cartPrices,priceCents,restoreCart,resolveItem,orderSummary,validQuantity} from '../src/cart-model.js';
 const catalog=[{slug:'mirror',name:'Mirror',price:'₪45',variants:[{id:'mint',name:'Mint',price:'₪25',originalPrice:'₪50',image:'mint.png'},{id:'pink',name:'Pink',price:'₪45',image:'pink.png'}]},{slug:'unknown',price:'Message us'},{slug:'sold',price:'₪20',status:'Sold Out'}];
+test('cart restores estimates from the current catalog and separates them from a fixed total',()=>{
+  const products=[...catalog,{slug:'cake-box',name:'Cake box',priceMode:'range',minPrice:8000,maxPrice:14000,purchasable:true}];
+  const fixed={productId:'mirror',variantId:'mint',quantity:1};
+  const cake={productId:'cake-box',quantity:2,minPrice:1,maxPrice:2,unitPrice:1};
+  const lines=restoreCart(products,[fixed,cake]);
+  assert.equal(lines[1].unitPrice,null);
+  assert.deepEqual(cartPrices(lines),{total:null,estimatedMin:18500,estimatedMax:30500});
+  assert.deepEqual(cartPrices(lines.slice(0,1)),{total:2500});
+});
 test('only exact prices can enter cart calculations',()=>{assert.equal(priceCents('₪19.99'),1999);assert.equal(priceCents(45),4500);for(const value of [null,undefined,'Message us','₪60+','',-1,NaN,'₪-5'])assert.equal(priceCents(value),null);});
 test('restoration merges matching identities, keeps colors separate and uses current prices',()=>{const items=restoreCart(catalog,[{productId:'mirror',variantId:'mint',quantity:2,unitPrice:1},{productId:'mirror',variantId:'mint',quantity:1},{productId:'mirror',variantId:'pink',quantity:1}]);assert.equal(items.length,2);assert.equal(items[0].quantity,3);assert.equal(items[0].unitPrice,2500);assert.equal(items[0].image,'mint.png');assert.equal(items.reduce((sum,item)=>sum+item.unitPrice*item.quantity,0),12000);assert.match(orderSummary(items,text=>text),/Total: ₪120$/);});
 test('invalid stored products, variants and quantities cannot enter the cart',()=>{for(const raw of [{productId:'unknown',quantity:1},{productId:'sold',quantity:1},{productId:'missing',quantity:1},{productId:'mirror',variantId:'unknown',quantity:1},{productId:'mirror',quantity:1},{productId:'mirror',variantId:'mint',quantity:0},{productId:'mirror',variantId:'mint',quantity:1.5}])assert.equal(resolveItem(catalog,raw),null);assert.deepEqual(restoreCart(catalog,{}),[]);for(const quantity of [0,-1,1.5,Infinity,'2',1000])assert.equal(validQuantity(quantity),false);});
