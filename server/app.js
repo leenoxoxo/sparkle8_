@@ -12,6 +12,7 @@ import {cart, customer, integer, invalid, slug, text, uuid} from './validation.j
 import {orderConfirmation} from './whatsapp.js';
 import {homepageInput} from './homepage.js';
 import {cloudinaryPath} from './images.js';
+import {stagingAccess} from './staging-access.js';
 
 const states = ['Confirmed','Preparing','Shipped','Delivered','Cancelled','Paid'];
 
@@ -61,6 +62,7 @@ export function createApp({env = process.env, pool = createPool(env.DATABASE_URL
   const orderLimit = limiter(20, 10 * 60 * 1000);
   const previewLimit = limiter(180, 10 * 60 * 1000);
   const receiptLimit = limiter(60, 10 * 60 * 1000);
+  const staging=stagingAccess(env,limiter(8,15*60*1000));
   const authentication = adminAuthentication({env,pool,db,store:sessionStore});
   const publicReads = new Map();
   const publicLifetime = 10000;
@@ -78,7 +80,7 @@ export function createApp({env = process.env, pool = createPool(env.DATABASE_URL
     publicReads.set(key,entry);
     return entry.promise;
   }
-  const sendPublic=(res,data)=>res.set('Cache-Control','public, max-age=0, must-revalidate').json(data);
+  const sendPublic=(res,data)=>res.set('Cache-Control',staging?'no-store':'public, max-age=0, must-revalidate').json(data);
 
   app.disable('x-powered-by');
   app.use(compression({threshold:1024}));
@@ -94,6 +96,7 @@ export function createApp({env = process.env, pool = createPool(env.DATABASE_URL
     }
     next();
   });
+  if (staging) app.use(staging);
   api.use((req, res, next) => {
     res.set('Cache-Control', 'no-store');
     if (!['GET','HEAD'].includes(req.method)) {
@@ -415,12 +418,12 @@ export function createApp({env = process.env, pool = createPool(env.DATABASE_URL
       const top=relative(staticDir,file).split(sep)[0];
       const fingerprinted=(top==='assets' && /-[\w-]{8}\.[a-z]+$/i.test(basename(file))) ||
         (top==='optimized' && /-[0-9a-f]{12}\.webp$/.test(file));
-      res.setHeader('Cache-Control',fingerprinted ? 'public, max-age=31536000, immutable' :
+      res.setHeader('Cache-Control',staging ? 'no-store' : fingerprinted ? 'public, max-age=31536000, immutable' :
         file.endsWith('.html') ? 'no-cache' : 'public, max-age=86400');
     }}));
     app.get('/{*path}', (req,res) => {
       if (decodeURIComponent(req.path).split('/').some(segment=>segment.startsWith('.'))) return res.sendStatus(404);
-      res.set('Cache-Control','no-cache').sendFile(resolve(staticDir,'index.html'));
+      res.set('Cache-Control',staging?'no-store':'no-cache').sendFile(resolve(staticDir,'index.html'));
     });
   }
   app.use((error, req, res, next) => {
