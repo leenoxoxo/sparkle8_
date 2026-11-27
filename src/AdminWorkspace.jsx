@@ -14,18 +14,20 @@ export const modules=[
   ['quantity-promotions','Quantity Promotions','عروض الكمية',Gift],
   ['reports','Sales Reports','تقارير المبيعات',ChartNoAxesCombined],
   ['homepage','Homepage Management','إدارة الصفحة الرئيسية',LayoutDashboard],
+  ['seasonal-effects','Seasonal Effects','التأثيرات الموسمية',CalendarDays],
   ['website','Website Content','محتوى الموقع',LayoutDashboard],
   ['reviews','Customer Reviews','آراء العملاء',Users],
   ['workshops','Workshops','الورش',CalendarDays],
   ['settings','Delivery and WhatsApp','التوصيل وواتساب',Truck],
+  ['delivery-destinations','Delivery Areas','مناطق التوصيل',Truck],
   ['account','Settings','الإعدادات',Settings],
   ['custom-requests','Legacy Custom Orders Archive','أرشيف الطلبات المخصصة',ClipboardList]
 ];
 const groups=[
   ['catalog','Catalog Management','إدارة الكتالوج',Boxes,['products','categories','inventory','kits']],
   ['sales','Sales Management','إدارة المبيعات',ShoppingBag,['orders','customers','discounts','reports']],
-  ['web','Website Management','إدارة الموقع',LayoutDashboard,['homepage','website','reviews','workshops']],
-  ['system','System Management','إدارة النظام',Settings,['settings','account','custom-requests']]
+  ['web','Website Management','إدارة الموقع',LayoutDashboard,['homepage','seasonal-effects','website','reviews','workshops']],
+  ['system','System Management','إدارة النظام',Settings,['delivery-destinations','settings','account','custom-requests']]
 ];
 const discounts=['promotions','quantity-promotions'];
 const readGroups=()=>{try{return JSON.parse(localStorage.getItem('sparkle-admin-nav')) || {catalog:true};}catch{return {catalog:true};}};

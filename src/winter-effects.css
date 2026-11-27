@@ -1,0 +1,96 @@
+.winter-layer {
+  --winter-white:#fff;
+  --winter-silver:#f7f8fd;
+  --winter-rose:#ffe0ef;
+  --winter-outline:#996f8ba6;
+  --winter-glow:#d895bdab;
+  --winter-crystal:#c49cb8;
+  --winter-star:#c58bab;
+  --travel:calc(100vh + 42px);
+  --travel:calc(100dvh + 42px);
+  isolation:isolate;
+  pointer-events:none;
+  overflow:hidden;
+  z-index:15;
+  inset:0;
+}
+.winter-layer--site{position:fixed}
+.winter-layer--preview{position:absolute;--travel:365px}
+.winter-snowfall,.winter-sparkles{position:absolute;inset:0;pointer-events:none}
+.winter-particle {
+  --particle-color:var(--winter-white);
+  position:absolute;
+  left:var(--x);
+  font:normal var(--size)/1 Georgia,serif;
+  color:var(--particle-color);
+  opacity:var(--alpha);
+  text-shadow:0 0 2px var(--winter-outline),0 1px 2px var(--winter-outline);
+  animation-duration:var(--duration);
+  animation-delay:var(--delay);
+  animation-iteration-count:infinite;
+}
+.winter-particle[data-tone=silver]{--particle-color:var(--winter-silver)}
+.winter-particle[data-tone=pink]{--particle-color:var(--winter-rose)}
+.winter-particle[data-glow=true]{text-shadow:0 0 2px var(--winter-outline),0 0 9px var(--winter-glow)}
+.winter-particle[data-shape=round] {
+  width:var(--size);
+  height:var(--size);
+  border-radius:50%;
+  background:radial-gradient(circle at 40% 36%,var(--particle-color) 24%,#f3d8ecad 65%,transparent 73%);
+  box-shadow:0 0 3px var(--winter-outline);
+}
+.winter-particle[data-shape=crystal]{color:var(--winter-crystal);-webkit-text-stroke:.35px var(--winter-outline)}
+.winter-particle[data-shape=crystal][data-tone=pink]{color:var(--winter-star)}
+.winter-particle[data-shape=star][data-tone=pink]{color:var(--winter-star)}
+.winter-snow{top:-26px;animation-name:winter-fall;animation-timing-function:linear}
+.winter-sparkle{top:var(--y);animation-name:winter-twinkle;animation-timing-function:ease-in-out}
+.winter-layer[data-paused=true] .winter-particle{animation-play-state:paused}
+@keyframes winter-fall {
+  0%{opacity:0;transform:translate3d(0,0,0) rotate(0)}
+  7%,88%{opacity:var(--alpha)}
+  46%{transform:translate3d(var(--drift),calc(var(--travel)*.46),0) rotate(calc(var(--spin)*.45))}
+  100%{opacity:0;transform:translate3d(calc(var(--drift)*-.35),var(--travel),0) rotate(var(--spin))}
+}
+@keyframes winter-twinkle {
+  0%,100%{opacity:.06;transform:scale(.75)}
+  45%,55%{opacity:var(--alpha);transform:scale(1.15)}
+}
+.dark-mood .winter-layer {
+  --winter-white:#fffaff;
+  --winter-silver:#e5e5fa;
+  --winter-rose:#ffd3eb;
+  --winter-outline:#593f65a6;
+  --winter-glow:#deacdfc0;
+  --winter-crystal:#fff1fa;
+  --winter-star:#ffd3eb;
+}
+body:has(.winter-layer--site[data-frost=true]) .home-hero{position:relative}
+body:has(.winter-layer--site[data-frost=true]) :is(.header,.home-hero)::before,
+body:has(.winter-layer--site[data-frost=true]) :is(.header,.home-hero)::after,
+.winter-layer--preview[data-frost=true]::before,
+.winter-layer--preview[data-frost=true]::after {
+  content:"";
+  position:absolute;
+  pointer-events:none;
+  z-index:1;
+  top:0;
+  left:0;
+  width:min(18%,145px);
+  height:clamp(13px,2vw,27px);
+  background:
+    radial-gradient(ellipse at 0 0,#fff 0%,#fff8fbdf 15%,#fbdcf0a6 27%,transparent 65%),
+    radial-gradient(circle at 26% 20%,#fff 0 1px,transparent 2px),
+    radial-gradient(circle at 42% 8%,#fff 0 1.5px,transparent 2.5px);
+}
+body:has(.winter-layer--site[data-frost=true]) :is(.header,.home-hero)::after,
+.winter-layer--preview[data-frost=true]::after{left:auto;right:0;transform:scaleX(-1)}
+body:has(.winter-layer--site[data-frost=true]) .home-hero::before,
+body:has(.winter-layer--site[data-frost=true]) .home-hero::after{top:-16px;height:16px;background-size:100% 75%;background-repeat:no-repeat}
+.winter-preview-size{container-type:inline-size}
+.winter-preview-size[data-size=mobile]{max-width:375px;margin-inline:auto}
+.winter-preview-card{position:relative;display:grid;align-content:center;isolation:isolate;min-height:260px;overflow:hidden;padding:1.5rem;border:1px solid var(--line);border-radius:18px;
+  background:linear-gradient(135deg,var(--cream),var(--blush));color:var(--ink)}
+.winter-preview-card h2{max-width:20ch}
+@media(max-width:650px){.winter-layer--site .winter-snow:nth-child(even),.winter-layer--site .winter-sparkle:nth-child(even){display:none}}
+@container(max-width:430px){.winter-layer--preview .winter-snow:nth-child(even),.winter-layer--preview .winter-sparkle:nth-child(even){display:none}}
+@media(prefers-reduced-motion:reduce){.winter-particle{display:none}}

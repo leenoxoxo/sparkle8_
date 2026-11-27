@@ -14,6 +14,7 @@ import {repository} from '../server/database.js';
 import {productInput} from '../server/catalog.js';
 import {restoreCart} from '../src/cart-model.js';
 import {variantCombinations} from '../src/variant-options.js';
+import {seasonalDefaults,winterIsActive} from '../src/seasonal-settings.js';
 
 test('homepage omits expired and booked workshops and keeps configurable ordering', () => {
   const clock=new Date('2026-11-25T07:00:00Z');
@@ -35,6 +36,14 @@ test('checkout normalizes both WhatsApp prefixes and rejects invalid mobile numb
 
 const customer = {name:'ليان & Noor',phone:'+970 599 111 111',area:'nablus',address:'شارع 1\nالطابق #2',notes:'هدية + بطاقة'};
 const basket = [{productId:'mirror',variantId:'pink',quantity:1}];
+
+test('winter date windows include both dates in the storefront timezone',()=>{
+  const winter={...seasonalDefaults,enabled:true,startDate:'2026-12-01',endDate:'2026-12-02'};
+  assert.equal(winterIsActive(winter,new Date('2026-11-30T21:59:59Z')),false);
+  assert.equal(winterIsActive(winter,new Date('2026-11-30T22:00:00Z')),true);
+  assert.equal(winterIsActive(winter,new Date('2026-12-02T21:59:59Z')),true);
+  assert.equal(winterIsActive(winter,new Date('2026-12-02T22:00:00Z')),false);
+});
 
 async function migrate(db) {
   for (const file of (await readdir('db/migrations')).sort()) await db.exec(await readFile('db/migrations/' + file,'utf8'));
@@ -398,11 +407,20 @@ test('Passport login and persistent sessions protect product, image and delivery
     assert.equal(quote.total,2000);
     assert.equal(quote.deliveryFee,null);
     const submission = randomUUID();
-    const buyer = {name:'Noor Test',city:'Nablus',address:'Example street 12',prefix:'+970',phone:'0594000123',alternativePrefix:'+972',alternativePhone:'0541234567'};
+    const buyer = {name:'Noor Test',destinationCode:'nablus',destinationRegion:'west-bank',address:'Example street 12',prefix:'+970',phone:'0594000123',alternativePrefix:'+972',alternativePhone:'0541234567'};
     const body = {submission,items,expected:quote,language:'en',customer:buyer};
-    for (const changes of [{phone:'invalid'},{name:''},{city:' '},{address:''},{alternativePhone:'invalid'}]) {
+    for (const changes of [{phone:'invalid'},{name:''},{destinationCode:' ',city:'Nablus'},{address:''},{alternativePhone:'invalid'}]) {
       assert.equal((await call('/checkout/orders',{method:'POST',body:{...body,customer:{...buyer,...changes}}})).status,400);
     }
+    assert.equal((await call('/checkout/orders',{method:'POST',body:{...body,customer:{...buyer,destinationRegion:'inside-1948'}}})).status,409);
+    assert.equal((await call('/checkout/orders',{method:'POST',body:{...body,customer:{...buyer,destinationCode:'nonexistent'}}})).status,409);
+    assert.equal((await call('/admin/delivery-destinations')).status,401);
+    const testTown={name:'Fixture Town',nameAr:'مدينة تجريبية',region:'west-bank',active:true,displayOrder:0};
+    assert.equal((await write('PUT','/delivery-destinations/fixture-town',testTown)).status,200);
+    assert.equal((await (await call('/delivery-destinations')).json())[0].code,'fixture-town');
+    assert.equal((await write('PUT','/delivery-destinations/fixture-town',{...testTown,name:'Renamed Fixture Town',active:false})).status,200);
+    assert.ok(!(await (await call('/delivery-destinations')).json()).some(row=>row.code==='fixture-town'));
+    assert.equal((await call('/checkout/orders',{method:'POST',body:{...body,customer:{...buyer,destinationCode:'fixture-town'}}})).status,409);
     const initial = await (await call('/checkout/orders',{method:'POST',body})).json();
     assert.match(initial.reference,/^SP-\d{6}$/);
     assert.match(initial.whatsappUrl,/^https:\/\/wa.me\/970594503571/);
@@ -426,6 +444,7 @@ test('Passport login and persistent sessions protect product, image and delivery
     assert.equal(orders[0].customer_phone,'+970594000123');
     assert.equal(orders[0].snapshot.customer.alternativePhone,'+972541234567');
     assert.equal(orders[0].snapshot.customer.address,'Example street 12');
+    assert.deepEqual(orders[0].snapshot.customer.deliveryDestination,{code:'nablus',region:'west-bank',name:'Nablus',nameAr:'نابلس'});
     for (const search of [initial.reference,'Nablus','0541234567','Noor Test']) {
       assert.equal((await (await call('/admin/orders?search='+encodeURIComponent(search),{cookie})).json())[0].id,orders[0].id);
     }
@@ -439,7 +458,7 @@ test('Passport login and persistent sessions protect product, image and delivery
     assert.equal((await write('PATCH','/orders/' + orders[0].id,{status:'Cancelled'})).status,200);
     assert.equal((await (await call('/admin/products',{cookie})).json())[0].catalog_skus[0].stock,4);
     let reference=Number(initial.reference.slice(3));
-    for (const contact of [{...buyer,phone:'+970 594000123',city:'Ramallah',address:'New address'},
+    for (const contact of [{...buyer,phone:'+970 594000123',destinationCode:'ramallah',address:'New address'},
       {...buyer,prefix:'+972',phone:'0540000123',alternativePhone:''}]) {
       const order = await call('/checkout/orders',{method:'POST',body:{...body,submission:randomUUID(),customer:contact,language:'ar'}});
       assert.equal(order.status,201);
@@ -528,6 +547,13 @@ test('Passport login and persistent sessions protect product, image and delivery
     assert.equal((await (await call('/admin/homepage',{cookie})).json()).draft.hero.title.en,'Isolated homepage test');
     assert.equal((await write('PUT','/homepage',{home:{...home,hero:{...home.hero,primary:{...home.hero.primary,href:'javascript:alert(1)'}}},publish:true})).status,400);
     assert.equal((await write('PUT','/homepage',{home,publish:true})).status,200);
+    const winter={...seasonalDefaults,enabled:true,intensity:'low',speed:'slow'};
+    assert.deepEqual(await (await call('/seasonal-effects')).json(),{enabled:false});
+    assert.equal((await call('/admin/seasonal-effects')).status,401);
+    assert.equal((await write('PUT','/seasonal-effects',{...winter,startDate:'2026-02-30'})).status,400);
+    assert.equal((await write('PUT','/seasonal-effects',winter)).status,200);
+    assert.deepEqual(await (await call('/seasonal-effects')).json(),winter);
+    assert.equal((await write('PUT','/content/website/seasonal-effects',{published:true,name:'Fixture'})).status,400);
     assert.deepEqual((await (await call('/content')).json()).home.reviews,[]);
     home.hero.title.en='Second revision';
     home.reviews[0].approved=true;
@@ -537,6 +563,8 @@ test('Passport login and persistent sessions protect product, image and delivery
     await stop();
     await start();
     const published=(await (await call('/content')).json()).home;
+    assert.deepEqual(await (await call('/admin/seasonal-effects',{cookie})).json(),winter);
+    assert.ok(!(await (await call('/admin/content/website',{cookie})).json()).items.some(row=>row.key==='seasonal-effects'));
     assert.equal(published.hero.title.en,'Second revision');
     assert.equal(published.reviews.length,1);
     assert.equal((await write('POST','/logout',{})).status,200);

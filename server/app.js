@@ -13,6 +13,8 @@ import {orderConfirmation} from './whatsapp.js';
 import {homepageInput} from './homepage.js';
 import {cloudinaryPath} from './images.js';
 import {stagingAccess} from './staging-access.js';
+import {readSeasonalSettings,seasonalInput} from './seasonal-settings.js';
+import {deliveryRegions,destinationSearch} from '../src/delivery-destinations.js';
 
 const states = ['Confirmed','Preparing','Shipped','Delivered','Cancelled','Paid'];
 
@@ -107,6 +109,11 @@ export function createApp({env = process.env, pool = createPool(env.DATABASE_URL
   });
   api.use(express.json({limit: '160kb'}));
   api.get('/health', (req, res) => res.json({ok: true}));
+  api.get('/seasonal-effects', async (_req,res)=>{
+    const settings=await cached('seasonal-effects',()=>readSeasonalSettings(db));
+    sendPublic(res,settings.enabled?settings:{enabled:false});
+  });
+  api.get('/delivery-destinations', async (_req,res)=>res.json(await db.destinations(true)));
   api.get('/catalog', async (req, res) => {
     const products=cached('products',async()=>storefrontProducts(await db.catalog(true)));
     if(req.query.withCategories!=='1') return sendPublic(res,await products);
@@ -136,7 +143,10 @@ export function createApp({env = process.env, pool = createPool(env.DATABASE_URL
     const {submission, items, expected, language} = req.body ?? {};
     if (!uuid(submission) || submission[14]!=='4' || !/[89ab]/i.test(submission[19]) ||
       !['en','ar'].includes(language) || !expected || typeof expected !== 'object' || Array.isArray(expected)) invalid();
-    const order = await db.submit({submission,items:cart(items),customer:customer(req.body.customer),expected,language});
+    const {destinationCode:code,destinationRegion:region}=req.body.customer ?? {};
+    if (!slug(code) || !deliveryRegions.some(([id])=>id===region)) invalid('invalid_destination');
+    const contact=customer({...req.body.customer,city:code});
+    const order = await db.submitDestination({submission,items:cart(items),customer:contact,expected,language,code,region});
     res.status(201).json(orderConfirmation(order));
   });
   api.get('/checkout/orders/:token', receiptLimit, async (req, res) => {
@@ -163,6 +173,23 @@ export function createApp({env = process.env, pool = createPool(env.DATABASE_URL
   });
   admin.post('/logout', authentication.logout);
   admin.get('/products', async (req, res) => res.json(await db.catalog()));
+  admin.get('/seasonal-effects', async (_req,res)=>res.json(await readSeasonalSettings(db)));
+  admin.put('/seasonal-effects', async (req,res)=>{
+    await db.saveContent('website','seasonal-effects',seasonalInput(req.body));
+    res.json({ok:true});
+  });
+  admin.get('/delivery-destinations', async (_req,res)=>res.json(await db.destinations()));
+  admin.put('/delivery-destinations/:code', async (req,res)=>{
+    const {code}=req.params;
+    const {region,name,nameAr,active,displayOrder,createOnly=false}=req.body ?? {};
+    if(!slug(code)||!deliveryRegions.some(([id])=>id===region)||typeof active!=='boolean'||typeof createOnly!=='boolean') invalid();
+    const labels=[text(name,120),text(nameAr,120)];
+    if([code,...labels].some(value=>['gaza','gazastrip','غزه','قطاعغزه'].includes(destinationSearch(value)))) invalid();
+    if(!await db.saveDestination({code,region,name:labels[0],nameAr:labels[1],active,displayOrder:integer(displayOrder,1000000),createOnly})){
+      throw new HttpError(409,'duplicate_destination');
+    }
+    res.json({ok:true});
+  });
   admin.patch('/products/bulk', async (req,res) => {
     const {targets,price,stock,category,published}=req.body ?? {};
     if (!Array.isArray(targets) || !targets.length || targets.length>50 || !targets.every(slug) ||
@@ -314,7 +341,7 @@ export function createApp({env = process.env, pool = createPool(env.DATABASE_URL
       home.reviews=home.reviews.filter(review=>review.approved && review.visible);
       home.banners=home.banners.filter(banner=>banner.active);
     }
-    return {workshops:visible(workshops),website:visible(website.filter(row=>!row.key.startsWith('homepage-'))),home};
+    return {workshops:visible(workshops),website:visible(website.filter(row=>!row.key.startsWith('homepage-')&&row.key!=='seasonal-effects')),home};
   });
   api.get('/content',async (req,res)=>sendPublic(res,await publicContent()));
   admin.get('/homepage', async (req,res) => {
@@ -372,12 +399,12 @@ export function createApp({env = process.env, pool = createPool(env.DATABASE_URL
   admin.get('/content/:section', async (req,res) => {
     const {section} = req.params;
     if (!['workshops','website'].includes(section)) invalid();
-    res.json({items:(await db.content(section)).filter(row=>!row.key.startsWith('homepage-')),registrations:section === 'workshops' ? await db.registrations() : []});
+    res.json({items:(await db.content(section)).filter(row=>!row.key.startsWith('homepage-')&&row.key!=='seasonal-effects'),registrations:section === 'workshops' ? await db.registrations() : []});
   });
   admin.put('/content/:section/:key', async (req,res) => {
     const {section,key} = req.params;
     const body = req.body;
-    if (!slug(key) || key.startsWith('homepage-') || !['workshops','website'].includes(section) || typeof body?.published !== 'boolean') invalid();
+    if (!slug(key) || key.startsWith('homepage-') || key==='seasonal-effects' || !['workshops','website'].includes(section) || typeof body?.published !== 'boolean') invalid();
     const fields = {name:text(body.name,180),nameAr:text(body.nameAr ?? '',180,0), description:text(body.description ?? '',1500,0),
       descriptionAr:text(body.descriptionAr ?? '',1500,0),published:body.published};
     if (section === 'workshops') {

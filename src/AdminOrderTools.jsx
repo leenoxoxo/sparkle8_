@@ -125,7 +125,7 @@ export function DeliverySettings({data,run}){
       <p>{l('Agree on delivery through WhatsApp and record the fee on the order.','اتفقي على التوصيل عبر واتساب وسجّلي الرسوم في الطلب.')}</p>
     </section>
     <section className="erp-dashboard-panel">
-      <h2>{l('Delivery areas','مناطق التوصيل')}</h2>
+      <h2>{l('Legacy delivery settings','إعدادات التوصيل السابقة')}</h2>
       {!data.areas.length && <p>{l('No delivery areas are saved. Delivery can still be arranged on each order.','لا توجد مناطق توصيل محفوظة. يمكن ترتيب التوصيل لكل طلب.')}</p>}
       <ul className="erp-simple-list">{data.areas.map(row=><li key={row.code}>
         <button onClick={()=>setArea({...row,existing:true})}>{ar?row.name_ar:row.name}</button>

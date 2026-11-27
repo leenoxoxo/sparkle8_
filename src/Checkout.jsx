@@ -67,7 +67,17 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
   const cart = useCart();
   const ar = lang === 'ar';
   const l = (english, arabic) => ar ? arabic : english;
-  const [fields,setFields] = useState({name:'',prefix:'+970',phone:'',alternativePrefix:'+970',alternativePhone:'',city:'',address:''});
+  const [fields,setFields] = useState({name:'',prefix:'+970',phone:'',alternativePrefix:'+970',alternativePhone:'',address:''});
+  const [city,setCity]=useState(null);
+  const [destinations,setDestinations]=useState({items:[],loading:true});
+  const [cityRefresh,setCityRefresh]=useState(0);
+  useEffect(()=>{
+    let active=true;
+    setDestinations({items:[],loading:true});
+    api('/delivery-destinations').then(items=>{if(active)setDestinations({items,loading:false});})
+      .catch(()=>{if(active)setDestinations({items:[],loading:false,error:true});});
+    return ()=>{active=false;};
+  },[cityRefresh]);
   const [quote,setQuote] = useState(null);
   const [busy,setBusy] = useState(false);
   const submissionLock = React.useRef(false);
@@ -113,7 +123,8 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
     event.preventDefault();
     if (submissionLock.current || recovering || !readyQuote) return;
     const phone = normalizeWhatsApp(fields.prefix,fields.phone);
-    if (![fields.name,fields.city,fields.address].every(value=>value.trim())) {setError('invalid_input');return;}
+    if (![fields.name,fields.address].every(value=>value.trim())) {setError('invalid_input');return;}
+    if(!city){setError('invalid_destination');return;}
     if (!phone) {
       setError('invalid_phone');
       return;
@@ -130,11 +141,13 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
       remember(attemptKey, submission);
     }
     try {
-      await api('/checkout/orders','POST',{submission,items,expected:readyQuote,customer:{...fields,phone,alternativePhone},language:lang});
+      await api('/checkout/orders','POST',{submission,items,expected:readyQuote,
+        customer:{...fields,phone,alternativePhone,destinationCode:city.code,destinationRegion:city.region},language:lang});
       complete(submission);
     } catch (failure) {
       setError(failure.message);
-      if (failure.message === 'quote_changed') {
+      if(failure.message==='invalid_destination'){setCity(null);setCityRefresh(value=>value+1);}
+      else if (failure.message === 'quote_changed') {
         try {
           const data = await api('/checkout/quote','POST',{items});
           setQuote({data,itemsKey});
@@ -166,7 +179,11 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
         <label>{l('Full name','الاسم الكامل')}<input name="name" required autoComplete="name" maxLength={120} value={fields.name} onChange={update}/></label>
         <PhoneField fields={fields} update={update} l={l}/>
         <PhoneField alternative fields={fields} update={update} l={l}/>
-        <label>{l('City','المدينة')}<input name="city" required autoComplete="address-level2" maxLength={120} value={fields.city} onChange={update}/></label>
+        <CityPicker cities={destinations.items} selected={city} lang={lang} disabled={destinations.loading||destinations.error}
+          error={error==='invalid_destination'} onSelect={value=>{setCity(value);if(error==='invalid_destination')setError('');}}/>
+        {destinations.loading&&<small role="status">{l('Loading cities…','جارٍ تحميل المدن…')}</small>}
+        {destinations.error&&<button type="button" className="button secondary" onClick={()=>setCityRefresh(value=>value+1)}>
+          {l('Retry loading cities','أعيدي تحميل المدن')}</button>}
         <label>{l('Street and address details','الشارع وتفاصيل العنوان')}<textarea name="address" required autoComplete="street-address" maxLength={600} value={fields.address} onChange={update}/></label>
         <p>{l('We save these details to process your order, arrange delivery, and contact you about it.','نحفظ هذه البيانات لمعالجة طلبك وترتيب التوصيل والتواصل معك بشأنه.')}</p>
         <p><strong>{l('Cash on Delivery','الدفع عند الاستلام')}</strong></p>
@@ -194,9 +211,11 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
         </dl>
         <p>{l('Delivery fees are not included. They will be confirmed through WhatsApp.','رسوم التوصيل غير مشمولة وسيتم تأكيدها عبر واتساب.')}</p>
         {estimated != null && <p>{rangeExplanation[lang]}</p>}
-        {error && <p role="alert">{errors[error]?.[ar ? 1 : 0] || l('Checkout is temporarily unavailable. Please try again.','إتمام الطلب غير متاح مؤقتاً. حاولي مرة أخرى.')}</p>}
+        {error && <p role="alert">{error==='invalid_destination'?l('Select an available city from the list.','اختاري مدينة متاحة من القائمة.'):
+          errors[error]?.[ar ? 1 : 0] || l('Checkout is temporarily unavailable. Please try again.','إتمام الطلب غير متاح مؤقتاً. حاولي مرة أخرى.')}</p>}
         <button className="button" disabled={!readyQuote || busy || recovering}>{busy ? l('Saving order…','جارٍ حفظ الطلب…') : l('Place Order','إرسال الطلب')}</button>
       </section>
     </form>
   </main>;
 }
+import CityPicker from './CityPicker.jsx';

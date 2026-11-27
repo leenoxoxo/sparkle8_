@@ -1,4 +1,7 @@
 import {orderReference} from './order-reference.js';
+import AdminDeliveryAreas from './AdminDeliveryAreas.jsx';
+import AdminSeasonalEffects from './AdminSeasonalEffects.jsx';
+import {deliveryRegions} from './delivery-destinations.js';
 import {linePrice,priceRange,rangeExplanation} from './range-pricing.js';
 import React, {useEffect, useState} from 'react';
 import {api, ils} from './commerce-api.js';
@@ -36,6 +39,7 @@ const messages = {
   archive_required:'Archive this product before deleting it.',
   product_has_history:'This product has order or stock history and can only be archived.',
   duplicate_slug:'That URL slug is already in use. Choose a different one.',
+  duplicate_destination:'A destination with that name already exists in this region.',
   delivery_locked:'Delivery is locked for paid or cancelled orders.',
   service_unavailable:'The server is currently unavailable.'
 };
@@ -183,6 +187,8 @@ export default function Admin() {
       {['homepage','reviews'].includes(tab) && <AdminHomepage data={data} run={run} initialSection={tab==='reviews'?'reviews':'hero'}/>}
       {tab === 'reports' && <BackOfficeReports data={data}/>}
       {tab === 'settings' && <DeliverySettings data={data} run={run}/>}
+      {tab === 'delivery-destinations' && <AdminDeliveryAreas rows={data} run={run} ar={ar}/>}
+      {tab === 'seasonal-effects' && <AdminSeasonalEffects settings={data} run={run} ar={ar}/>}
       {tab === 'account' && <section className="commerce-panel commerce-fields"><h2>{l('Account preferences','تفضيلات الحساب')}</h2><p>{data.email}</p>
         <label>{l('Language','اللغة')} <select value={ar ? 'ar' : 'en'} onChange={event => setAr(event.target.value === 'ar')}><option value="en">English</option><option value="ar">العربية</option></select></label>
         <label className="commerce-check"><input type="checkbox" checked={dark} onChange={event => setDark(event.target.checked)}/>{l('Dark mode','الوضع الداكن')}</label>
@@ -547,6 +553,9 @@ function orderTotal(sale,t) {
 function Orders({data,run}) {
   const t = useAdminText();
   const lang = React.useContext(AdminLanguage) ? 'ar' : 'en';
+  const l=(en,ar)=>lang==='ar'?ar:en;
+  const cityName=customer=>customer.deliveryDestination?.[l('name','nameAr')] || customer.city;
+  const regionName=customer=>deliveryRegions.find(([code])=>code===customer.deliveryDestination?.region)?.[l(1,2)];
   const [view,setView] = useState('table');
   const [open,setOpen] = useState(null);
   const selected = data.find(order => order.id === open);
@@ -564,7 +573,8 @@ function Orders({data,run}) {
   return <div className="admin-list">
     <div className="commerce-actions"><button className="button secondary" onClick={() => setView(view === 'table' ? 'kanban' : 'table')}>{t(view === 'table' ? 'Kanban view' : 'Table view')}</button></div>
     {view === 'table' ? <Table headers={['Order','Customer','WhatsApp Number','City','Date','Total','Status','Payment','Action']} rows={data.map(order => [
-      order.id,orderReference(order.reference,order.snapshot.customer.referenceFormat),order.snapshot.customer.name,order.customer_phone || order.snapshot.customer.phone,order.snapshot.customer.city || order.snapshot.destination?.name || '—',
+      order.id,orderReference(order.reference,order.snapshot.customer.referenceFormat),order.snapshot.customer.name,order.customer_phone || order.snapshot.customer.phone,
+      [cityName(order.snapshot.customer) || order.snapshot.destination?.name,regionName(order.snapshot.customer)].filter(Boolean).join(' · ') || '—',
       new Date(order.created_at).toLocaleDateString(),orderTotal(order.snapshot,t),t(order.status),t(order.paid ? 'Paid' : 'Unpaid'),action(order)])}/> :
       <div className="erp-lanes">{Object.keys(transitions).map(status => <section className="commerce-panel" key={status}><h3>{t(status)}</h3>
         {data.filter(order => order.status === status).map(order => <article className="commerce-panel" key={order.id}>
@@ -577,7 +587,9 @@ function Orders({data,run}) {
     return <details ref={orderDetail} open key={order.id} className="commerce-panel">
       <summary><strong>{orderReference(order.reference,customer.referenceFormat)}</strong> · {customer.name} · {t(order.status)} · {t(order.paid ? 'Paid' : 'Unpaid')} · {orderTotal(sale,t)}</summary>
       <p>{new Date(order.created_at).toLocaleString(lang)}</p>
-      <OrderContact contact={{...customer,phone:order.customer_phone || customer.phone,city:customer.city || sale.destination?.name}}/>
+      <OrderContact contact={{...customer,phone:order.customer_phone || customer.phone,city:cityName(customer) || sale.destination?.name}}/>
+      {customer.deliveryDestination && <p><strong>{l('Delivery region','منطقة التوصيل')}</strong>{' '}
+        {regionName(customer)}</p>}
       <a className="button secondary" href={whatsappCustomer(order.customer_phone || customer.phone)} target="_blank" rel="noreferrer"><AdminLabel>Contact Customer via WhatsApp</AdminLabel></a>
       {customer.notes && <p>{customer.notes}</p>}
       <ul>{sale.lines.map(line => <li className="admin-order-line" key={JSON.stringify([line.productId,line.variantId,line.kitChoices])}>{line.option?.image || line.image ? <img {...cloudImageProps(line.option?.image || line.image,[160])} alt="" loading="lazy"/> : <span/>}<div>{line.quantity} × {(lang==='ar' && line.nameAr) || line.name}{line.option && ' · ' + variantDescription(line.option,lang)}

@@ -67,3 +67,15 @@ Render Free sleeps after 15 idle minutes and limits runtime, builds, bandwidth, 
 In the preview service's **Environment** settings, add `STAGING_ACCESS_ENABLED=true` and `STAGING_ACCESS_PASSWORD` with a unique random password of at least 20 characters. Keep the existing `SESSION_SECRET` and set the health check path to `/api/health`. Testers enter the preview password before using the storefront. Administrators also sign in separately at `/admin`.
 
 To open the site at launch, set `STAGING_ACCESS_ENABLED=false` and remove `STAGING_ACCESS_PASSWORD` from the service's environment before the approved deploy. The gate covers Sparkle's pages, files and APIs. Existing public Cloudinary URLs use Cloudinary's own access rules.
+## Delivery destination rollout
+
+The destination seed is an editable checkout directory grouped into West Bank, Inside / 1948 Areas, East Jerusalem, and West Jerusalem. Confirm the actual delivery coverage in **Admin → System Management → Delivery Areas** before enabling checkout for customers. Delivery fees remain manual on the order.
+
+To review locally without connecting to Neon, run `npm test`, `npm run build`, then `npm run test:checkout`. Install a Chromium test browser with `npx playwright install chromium`, or set `PLAYWRIGHT_CHROMIUM_CHANNEL=chrome` to use installed Chrome. The browser check uses a local Express server and fixture API responses. The integration suite applies the migrations to a disposable PGlite database.
+
+After explicit approval, verify the intended database and save an encrypted backup with a separately stored key. Rehearse migration `202611280014_delivery_destinations.sql` on an isolated database before running `npm run db:prepare` from the approved checkout against the verified owner connection. Confirm the migration ledger, four destination groups, disabled entries, and a historical order with its original address. Apply the migration before starting the new app. It adds a table and a function while leaving the previous order function and records in place. To roll back the app, redeploy the prior application version and leave the additive migration in place.
+## Seasonal effects
+
+Open **Admin → Website Management → Seasonal Effects** to preview and save snow, sparkles, frosted accents, intensity, speed, and optional inclusive dates. Settings are stored under a separate key in the existing website content table. They default to off and require no database migration. Changes appear on the next page load or when a visitor returns focus to the site after the refresh interval.
+
+With Vite running, open `http://localhost:5173/?winter-preview=1` to preview winter mode without saving. The preview query works only in development. Checkout and the order success page exclude site effects, and the admin dashboard shows them only in the preview panel you open.

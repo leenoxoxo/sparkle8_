@@ -12,6 +12,7 @@
     "start": "node server/index.js",
     "test": "node --test",
     "test:mobile": "node --test checks/mobile-product.mjs",
+    "test:checkout": "node --test checks/checkout-destinations.mjs",
     "build": "node ./node_modules/vite/bin/vite.js build",
     "preview": "vite preview"
   },

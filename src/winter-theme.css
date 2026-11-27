@@ -1,0 +1,80 @@
+html:has(.winter-theme-active),
+.winter-preview-card:has(.winter-layer--preview) {
+  --winter-blush:#fff5f8;
+  --winter-pink:#f4dce7;
+  --winter-dust:#e8c4d5;
+  --winter-mauve:#ad6687;
+  --winter-deep:#854660;
+  --winter-ivory:#fff8f3;
+  --winter-paper:#fff;
+  --cream:var(--winter-blush);
+  --paper:var(--winter-paper);
+  --blush:var(--winter-pink);
+  --pink:var(--winter-dust);
+  --rose:var(--winter-deep);
+  --ink:#533543;
+  --muted:#755664;
+  --line:#dfbecd;
+  --lilac:#f3edf8;
+  --shadow:0 18px 50px #85466019;
+  --winter-page:linear-gradient(155deg,var(--winter-blush),var(--winter-ivory) 64%,#f9e7ee);
+  --winter-header:#fff5f8ed;
+  --winter-footer:#f6e5ed;
+  --winter-action:#975374;
+  --winter-action-text:#fff;
+  --winter-action-border:var(--winter-action);
+  --winter-focus:var(--winter-mauve);
+  --winter-heading:#452b42;
+  --winter-rose-text:#914a6d;
+  --winter-mauve-text:#80506f;
+  --winter-berry-text:#78334f;
+  --winter-available-text:#49624e;
+}
+
+html.dark-mood:has(.winter-theme-active),
+.dark-mood .winter-preview-card:has(.winter-layer--preview) {
+  --cream:#2c232f;
+  --paper:#3b2d3b;
+  --blush:#493647;
+  --pink:#e8a9c7;
+  --rose:#ffc8de;
+  --ink:#fff3f8;
+  --muted:#dec3d2;
+  --line:#715668;
+  --lilac:#493d58;
+  --shadow:0 18px 50px #150c1857;
+  --winter-page:linear-gradient(155deg,#2c232f,#322636 62%,#39293a);
+  --winter-header:#302536ed;
+  --winter-footer:#392b3a;
+  --winter-action:#e9adc9;
+  --winter-action-text:#382333;
+  --winter-focus:#ffd1e6;
+  --winter-heading:#fff3f8;
+  --winter-rose-text:#f6b2d3;
+  --winter-mauve-text:#dfaccd;
+  --winter-berry-text:#ffc6dd;
+  --winter-available-text:#b1d9bb;
+}
+
+html:has(.winter-theme-active) body { background:var(--winter-page); color:var(--ink); }
+html:has(.winter-theme-active) .header { background:var(--winter-header); border-color:var(--line); }
+html:has(.winter-theme-active) footer { background:var(--winter-footer); }
+html:has(.winter-theme-active) :is(.home-hero-copy,.page-intro) h1 { color:var(--winter-heading); }
+html:has(.winter-theme-active) .home-hero-copy h1 em { color:var(--winter-rose-text); }
+html:has(.winter-theme-active) :is(.page-intro h1,.section-head h2) em { color:var(--winter-mauve-text); }
+html:has(.winter-theme-active) .page-intro .experience-title em { color:var(--winter-berry-text); }
+html:has(.winter-theme-active) main .eyebrow { color:var(--winter-mauve-text); }
+html:has(.winter-theme-active) :is(.button:not(.secondary),.shop-tabs [aria-current=page],.shop-filters [aria-pressed=true]) {
+  background-color:var(--winter-action);
+  border-color:var(--winter-action-border);
+  color:var(--winter-action-text);
+}
+html:has(.winter-theme-active) :is(input:not([type=checkbox]),textarea,select) {
+  accent-color:var(--winter-action);
+}
+html:has(.winter-theme-active) :is(input,textarea,select):focus {
+  border-color:var(--winter-focus);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--winter-focus) 23%,transparent);
+}
+html:has(.winter-theme-active) .available:not(.shop-stock) { color:var(--winter-available-text); }
+html:has(.winter-theme-active) .cart-dialog::backdrop { background-color:#30203570; }

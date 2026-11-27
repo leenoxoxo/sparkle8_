@@ -45,6 +45,16 @@ export function repository(pool) {
     archiveProduct: id => rows('update public.catalog_products set archived=true,published=false where slug=$1',[id]),
     deleteProduct: id => rows('select public.sparkle_delete_unused_product($1)',[id]),
     delivery: () => rows('select * from public.delivery_areas order by name'),
+    destinations: (publicOnly=false) => rows(`select code,region,name,name_ar,active,display_order
+      from public.delivery_destinations where not $1::boolean or active order by display_order,name,code`,[publicOnly]),
+    saveDestination: item => one(`insert into public.delivery_destinations(code,region,name,name_ar,active,display_order)
+      values($1,$2,$3,$4,$5,$6) on conflict(code) do update set
+      region=excluded.region,name=excluded.name,name_ar=excluded.name_ar,active=excluded.active,display_order=excluded.display_order
+      where not $7::boolean returning code`,
+      [item.code,item.region,item.name,item.nameAr,item.active,item.displayOrder,item.createOnly]),
+    submitDestination: ({submission,items,customer,expected,language,code,region}) => one(
+      'select * from public.sparkle_submit_destination($1,$2,$3,$4,$5,$6,$7)',
+      [submission,json(items),json(customer),json(expected),language,code,region]),
     regions: (region,code) => one(`
       select exists(select 1 from public.delivery_areas where code=$1 and region is null) as valid,
       exists(select 1 from public.delivery_areas where region=$2) as parent`, [region,code]),
@@ -69,6 +79,7 @@ export function repository(pool) {
             then 'SP-' || lpad(o.reference::text,greatest(6,length(o.reference::text)),'0')
             else '#SPK-' || lpad(o.reference::text,greatest(4,length(o.reference::text)),'0') end),lower($3))>0
           or strpos(lower(coalesce(o.snapshot->'customer'->>'city',o.snapshot->'destination'->>'name','')),lower($3))>0
+          or strpos(lower(coalesce(o.snapshot->'customer'->'deliveryDestination'->>'nameAr','')),lower($3))>0
           or (regexp_replace($3,'[^0-9]','','g')<>'' and exists(
             select 1 from (values (coalesce(o.customer_phone,o.snapshot->'customer'->>'phone','')),
               (coalesce(o.snapshot->'customer'->>'alternativePhone',''))) contact(phone)
@@ -118,6 +129,7 @@ export function repository(pool) {
       description=excluded.description,description_ar=excluded.description_ar`,
       [from,to,ar,metadata.parent,metadata.section,metadata.published,metadata.displayOrder,metadata.image,metadata.description,metadata.descriptionAr,metadata.sectionIntro]),
     content: section => rows('select key,body from public.shop_content where section=$1 order by key',[section]),
+    contentItem: (section,key) => one('select body from public.shop_content where section=$1 and key=$2',[section,key]),
     saveHomepage: (value,publish) => rows(`insert into public.shop_content(section,key,body)
       select 'website', version, jsonb_build_object('published',version='homepage-live','config',$1::jsonb)
       from unnest(case when $2::boolean then array['homepage-draft','homepage-live'] else array['homepage-draft'] end) version

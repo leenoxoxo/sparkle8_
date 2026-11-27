@@ -38,6 +38,17 @@
 }
 .commerce-fields textarea { resize: vertical; min-height: 85px; }
 .checkout-phone { display:grid; grid-template-columns: minmax(5.5rem,auto) minmax(0,1fr); gap:.55rem; }
+.city-picker { display:grid; gap:.35rem; min-width:0; }
+.city-picker > label { margin:0; }
+.city-picker-field { position:relative; }
+.city-picker-field input { padding-inline-end:3rem; }
+.city-picker-field button { position:absolute; inset-block:0; inset-inline-end:0; width:44px; border:0;
+  background:transparent; color:var(--rose); display:grid; place-items:center; cursor:pointer; }
+.city-picker-list { max-height:min(17rem,40dvh); overflow:auto; overscroll-behavior:contain;
+  border:1px solid var(--line); border-radius:12px; background:var(--paper); }
+.city-picker-list p { padding:.5rem .75rem; font-weight:700; color:var(--rose); background:var(--blush); }
+.city-picker-list [role=option] { display:flex; align-items:center; min-height:44px; padding:.55rem .75rem; cursor:pointer; }
+.city-picker-list [data-active=true],.city-picker-list [aria-selected=true] { background:var(--blush); }
 .commerce-fields .commerce-check { display: flex; align-items: center; gap: 0.55rem; }
 .commerce-check input { width: 1rem; min-height: auto; accent-color: var(--rose); }
 .commerce-line {
