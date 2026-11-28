@@ -12,10 +12,10 @@ export default function CityPicker({cities,selected,onSelect,lang,disabled,error
   const select=city=>{onSelect(city);setOpen(false);setQuery('');setActive(-1);};
   const close=()=>{setOpen(false);setQuery('');setActive(-1);};
   return <div className="city-picker" onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget))close();}}>
-    <label htmlFor={id}>{l('City','المدينة')}</label>
+    <label htmlFor={id}><span>{l('City','المدينة')}<span aria-hidden="true"> *</span></span></label>
     <div className="city-picker-field">
-      <input ref={input} id={id} type="text" role="combobox" aria-autocomplete="list" aria-required="true"
-        aria-expanded={open} aria-controls={id+'-list'} aria-invalid={error||undefined}
+      <input ref={input} id={id} name="city" type="text" role="combobox" aria-autocomplete="list" aria-required="true"
+        aria-expanded={open} aria-controls={id+'-list'} aria-invalid={Boolean(error)||undefined} aria-describedby={error?id+'-error':undefined}
         aria-activedescendant={open&&ordered[active] ? id+ordered[active].code : undefined}
         autoComplete="off" disabled={disabled} placeholder={l('Select your city','اختاري مدينتك')}
         value={open?query:selected?name(selected):''} onFocus={()=>setOpen(true)}
@@ -40,6 +40,7 @@ export default function CityPicker({cities,selected,onSelect,lang,disabled,error
         <ChevronDown size={20} aria-hidden="true"/>
       </button>
     </div>
+    {error&&<small className="checkout-field-error" id={id+'-error'} role="alert">{error}</small>}
     <div id={id+'-list'} role="listbox" aria-label={l('Delivery cities','مدن التوصيل')} hidden={!open} className="city-picker-list">
       {deliveryRegions.map(([region,en,arabic])=>{
         const rows=matches.filter(city=>city.region===region);

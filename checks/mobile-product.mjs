@@ -14,7 +14,7 @@ const product={
     {id:'model',name:'Model',nameAr:'الموديل',kind:'select',values:[{id:'sample',name:'Sample',nameAr:'تجريبي'}]},
   ],
   defaultVariant:'pink-sample',
-  variants:[{id:'pink-sample',name:'Pink Sample',price:'₪35',purchasable:true,status:'Available',
+  variants:[{id:'pink-sample',name:'Pink Sample',price:'₪35',availableStock:2,purchasable:true,status:'Available',
     selections:{color:'pink',model:'sample'},image:photos[0],images:photos}],
 };
 
@@ -80,6 +80,17 @@ test('mobile touch can expand and collapse both product disclosures and use the 
           await page.getByRole('button',{name:lang==='ar'?'زيادة الكمية':'Increase quantity'}).tap();
           await page.getByRole('button',{name:lang==='ar'?'أضيفي إلى السلة':'Add to Cart',exact:true}).tap();
           await page.locator('.cart-count').filter({hasText:'2'}).waitFor();
+          assert.equal(await page.getByRole('button',{name:lang==='ar'?'أضيفي إلى السلة':'Add to Cart',exact:true}).isDisabled(),true);
+          await page.locator('.cart-header-button').tap();
+          const drawer=page.locator('.cart-dialog');
+          const increase=drawer.getByRole('button',{name:lang==='ar'?'زيادة الكمية':'Increase quantity'});
+          assert.equal(await increase.isDisabled(),true);
+          await drawer.getByRole('button',{name:lang==='ar'?'تقليل الكمية':'Decrease quantity'}).tap();
+          assert.equal(await increase.isEnabled(),true);
+          await increase.tap();
+          assert.equal(await increase.isDisabled(),true);
+          assert.equal(await page.locator('.storefront-loading').isVisible(),false);
+          await drawer.locator('.cart-close').tap();
           const [popup]=await Promise.all([page.waitForEvent('popup'),page.locator('.product-purchase-contact').tap()]);
           await popup.waitForLoadState();
           assert.ok(reachedWhatsApp);

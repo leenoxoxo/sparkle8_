@@ -147,6 +147,7 @@ export function createApp({env = process.env, pool = createPool(env.DATABASE_URL
     if (!slug(code) || !deliveryRegions.some(([id])=>id===region)) invalid('invalid_destination');
     const contact=customer({...req.body.customer,city:code});
     const order = await db.submitDestination({submission,items:cart(items),customer:contact,expected,language,code,region});
+    publicReads.delete('products');
     res.status(201).json(orderConfirmation(order));
   });
   api.get('/checkout/orders/:token', receiptLimit, async (req, res) => {

@@ -4,19 +4,31 @@ import {linePrice,priceRange,rangeExplanation} from './range-pricing.js';
 import React, {useEffect, useState} from 'react';
 import {api, ils} from './commerce-api.js';
 import {useCart} from './Cart.jsx';
-import {normalizeWhatsApp} from './whatsapp-phone.js';
+import CityPicker from './CityPicker.jsx';
+import {checkoutPhone} from './whatsapp-phone.js';
+import {validCheckoutName,validCheckoutAddress} from './checkout-contact.js';
 import './commerce.css';
 import {cloudImageProps} from './cloud-image.js';
 import {variantDescription} from './variant-options.js';
 
 const confirmationKey = 'sparkle-last-confirmation';
 const attemptKey = 'sparkle-checkout-attempt';
+let freshConfirmation;
+const celebrationStars=[
+  [-76,-35],[-83,2],[-60,42],[-36,-53],[-28,58],
+  [28,58],[36,-53],[60,42],[83,2],[76,-35]
+];
 const errors = {
-  invalid_phone:['Enter a valid phone number.','أدخلي رقم هاتف صالحاً.'],
+  phone_required:['Phone number is required.','رقم الهاتف مطلوب.'],
+  invalid_name:['Please enter a valid name.','يرجى إدخال اسم صحيح.'],
+  invalid_address:['Please enter a valid address.','يرجى إدخال عنوان صحيح.'],
+  address_required:['Please enter your street and detailed address.','يرجى إدخال اسم الشارع والعنوان بالتفصيل.'],
+  invalid_destination:['Please select your city.','يرجى اختيار المدينة.'],
+  invalid_phone:['Please enter a valid 10-digit phone number.','يرجى إدخال رقم هاتف صحيح مكوّن من 10 أرقام.'],
   stock_unavailable:['Some items are unavailable in the requested quantity. Review your cart.','بعض القطع غير متوفرة بالكمية المطلوبة. راجعي سلتك.'],
   quote_changed:['Prices or fees changed. Review the updated total before continuing.','تغيّرت الأسعار أو الرسوم. راجعي المجموع المحدّث قبل المتابعة.'],
-  invalid_alternative_phone:['Enter a valid alternative mobile number.','أدخلي رقم هاتف بديل صالحاً.'],
-  invalid_input:['Enter your name, city and street address.','أدخلي الاسم والمدينة وتفاصيل العنوان.']
+  invalid_alternative_phone:['Please enter a valid 10-digit additional phone number.','يرجى إدخال رقم هاتف بديل صحيح مكوّن من 10 أرقام.'],
+  invalid_input:['Review your checkout information and try again.','راجعي بيانات الطلب وحاولي مرة أخرى.']
 };
 
 function stored(key) {
@@ -31,17 +43,25 @@ export function OrderSuccess({lang,navigate}) {
   const [result,setResult]=useState({pending:true});
   useEffect(()=>{
     let active=true;
+    if(freshConfirmation){
+      setResult({confirmation:freshConfirmation,celebrate:true});
+      freshConfirmation=undefined;
+      return;
+    }
     const token=stored(confirmationKey);
     if(!token){setResult({});return;}
     api('/checkout/orders/'+token).then(confirmation=>{if(active)setResult({confirmation});})
       .catch(()=>{if(active)setResult({});});
     return ()=>{active=false;};
   },[]);
-  const {confirmation,pending}=result;
-  return <main className="commerce-page" data-commerce><section className="commerce-panel order-success">
-    {confirmation ? <><CircleCheck size={52} aria-hidden="true"/><h1>{l('Thank you for your order!','شكرًا على طلبك!')}</h1>
+  const {confirmation,pending,celebrate}=result;
+  return <main className="commerce-page" data-commerce><section className="commerce-panel order-success" data-celebrate={celebrate}>
+    {confirmation ? <><div className="order-success-mark" aria-hidden="true"><CircleCheck size={52}/>
+      {celebrate&&<div className="order-success-stars">{celebrationStars.map(([x,y],index)=>
+        <span key={index} style={{'--star-x':x+'px','--star-y':y+'px','--star-delay':index%3*45+'ms'}}>{index%2?'✧':'★'}</span>)}</div>}
+      </div><h1>{l('Thank you for your order!','شكرًا على طلبك!')}</h1>
       <p className="order-reference"><bdi>{confirmation.reference}</bdi></p>
-      <p>{l('Your order has been registered and is awaiting confirmation. Contact Sparkle on WhatsApp to confirm it and check the delivery fee.',
+      <p className="order-success-message">{l('Your order has been registered and is awaiting confirmation. Contact Sparkle on WhatsApp to confirm it and check the delivery fee.',
         'تم تسجيل طلبك وهو بانتظار التأكيد. تواصلي مع سباركل عبر واتساب لتأكيده ومعرفة رسوم التوصيل.')}</p>
       <div className="commerce-actions"><a className="button" href={confirmation.whatsappUrl} target="_blank" rel="noreferrer">
         {l('Confirm order via WhatsApp','تأكيد الطلب عبر واتساب')}</a></div>
@@ -51,19 +71,24 @@ export function OrderSuccess({lang,navigate}) {
   </section></main>;
 }
 
-function PhoneField({alternative,fields,update,l}) {
+function FieldError({name,message}){
+  return message && <small className="checkout-field-error" id={name+'-error'} role="alert">{message}</small>;
+}
+const fieldAttributes=(name,error)=>({'aria-invalid':Boolean(error)||undefined,'aria-describedby':error?name+'-error':undefined});
+
+function PhoneField({alternative,fields,update,l,message}) {
   const prefix=alternative?'alternativePrefix':'prefix';
   const number=alternative?'alternativePhone':'phone';
   return <div className="checkout-phone">
     <label>{l('Country code','رمز الدولة')}<select name={prefix} dir="ltr" value={fields[prefix]} onChange={update}>
       <option value="+970">+970</option><option value="+972">+972</option></select></label>
-    <label>{alternative ? l('Alternative mobile (optional)','هاتف بديل (اختياري)') : l('Primary mobile / WhatsApp','الهاتف الأساسي / واتساب')}
-      <input type="tel" dir="ltr" name={number} inputMode="tel" autoComplete={alternative?'off':'tel-national'}
-        maxLength={32} required={!alternative} value={fields[number]} onChange={update}/></label>
+    <label><span>{alternative ? l('Alternative mobile (optional)','هاتف بديل (اختياري)') : l('Primary mobile / WhatsApp','الهاتف الأساسي / واتساب')}{!alternative&&<span aria-hidden="true"> *</span>}</span>
+      <input type="tel" dir="ltr" name={number} inputMode="numeric" autoComplete={alternative?'off':'tel-national'}
+        maxLength={32} required={!alternative} {...fieldAttributes(number,message)} value={fields[number]} onChange={update}/><FieldError name={number} message={message}/></label>
   </div>;
 }
 
-export default function Checkout({lang, t, navigate, catalogStatus}) {
+export default function Checkout({lang, t, navigate, catalogStatus,refreshStock}) {
   const cart = useCart();
   const ar = lang === 'ar';
   const l = (english, arabic) => ar ? arabic : english;
@@ -83,6 +108,27 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
   const submissionLock = React.useRef(false);
   const attempt = React.useRef(stored(attemptKey));
   const [error,setError] = useState('');
+  const [validated,setValidated]=useState(false);
+  const [destinationRejected,setDestinationRejected]=useState(false);
+  const [retryQuote,setRetryQuote]=useState(0);
+  const form=React.useRef(null);
+  const phone=checkoutPhone(fields.prefix,fields.phone);
+  const alternative=checkoutPhone(fields.alternativePrefix,fields.alternativePhone);
+  const fieldCodes={
+    name:!validCheckoutName(fields.name)?'invalid_name':null,
+    phone:!fields.phone?'phone_required':!phone?'invalid_phone':null,
+    alternativePhone:fields.alternativePhone&&!alternative?'invalid_alternative_phone':null,
+    city:!city?'invalid_destination':null,
+    address:!fields.address.trim()?'address_required':!validCheckoutAddress(fields.address)?'invalid_address':null
+  };
+  const feedback=(name)=>(validated||(name==='city'&&destinationRejected))&&errors[fieldCodes[name]]?.[ar?1:0];
+  const focusField=name=>requestAnimationFrame(()=>{
+    const field=form.current?.elements.namedItem(name);
+    if(field && !field.disabled){field.scrollIntoView({block:'center'});field.focus({preventScroll:true});}
+  });
+  useEffect(()=>{
+    if(destinationRejected&&!destinations.loading&&!destinations.error)focusField('city');
+  },[destinationRejected,destinations.loading,destinations.error]);
   const [recovering,setRecovering] = useState(()=>Boolean(attempt.current));
   const itemsKey = JSON.stringify(cart.items.map(({productId,variantId,quantity,kitChoices}) => ({productId,variantId,quantity,kitChoices})));
   const items = JSON.parse(itemsKey);
@@ -109,28 +155,23 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
     setError('');
     api('/checkout/quote','POST',{items:JSON.parse(itemsKey)})
       .then(data => {if (active) setQuote({data,itemsKey});})
-      .catch(e => {if (active) setError(e.message);});
+      .catch(e => {if (active) {setError(e.message);if(e.message==='stock_unavailable')refreshStock?.();}});
     return () => {active = false;};
-  }, [itemsKey]);
+  }, [itemsKey,retryQuote]);
 
   const readyQuote = quote?.itemsKey === itemsKey ? quote.data : null;
   const update = event => {
     const {name,value}=event.target;
     setFields(current=>({...current,[name]:value}));
-    if (['invalid_input','invalid_phone','invalid_alternative_phone'].includes(error)) setError('');
+    if (['invalid_input','invalid_name','invalid_address','phone_required','address_required','invalid_phone','invalid_alternative_phone'].includes(error)) setError('');
   };
   async function submit(event) {
     event.preventDefault();
-    if (submissionLock.current || recovering || !readyQuote) return;
-    const phone = normalizeWhatsApp(fields.prefix,fields.phone);
-    if (![fields.name,fields.address].every(value=>value.trim())) {setError('invalid_input');return;}
-    if(!city){setError('invalid_destination');return;}
-    if (!phone) {
-      setError('invalid_phone');
-      return;
-    }
-    const alternativePhone=fields.alternativePhone.trim() ? normalizeWhatsApp(fields.alternativePrefix,fields.alternativePhone) : '';
-    if (fields.alternativePhone.trim() && !alternativePhone) {setError('invalid_alternative_phone');return;}
+    if (submissionLock.current || recovering) return;
+    setValidated(true);
+    const invalidField=Object.keys(fieldCodes).find(name=>fieldCodes[name]);
+    if(invalidField){focusField(invalidField);return;}
+    if(!readyQuote){if(error)setRetryQuote(value=>value+1);return;}
     submissionLock.current = true;
     setBusy(true);
     setError('');
@@ -141,12 +182,13 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
       remember(attemptKey, submission);
     }
     try {
-      await api('/checkout/orders','POST',{submission,items,expected:readyQuote,
-        customer:{...fields,phone,alternativePhone,destinationCode:city.code,destinationRegion:city.region},language:lang});
+      freshConfirmation=await api('/checkout/orders','POST',{submission,items,expected:readyQuote,
+        customer:{...fields,destinationCode:city.code,destinationRegion:city.region},language:lang});
       complete(submission);
     } catch (failure) {
       setError(failure.message);
-      if(failure.message==='invalid_destination'){setCity(null);setCityRefresh(value=>value+1);}
+      if(failure.message==='invalid_destination'){setDestinationRejected(true);setCity(null);setCityRefresh(value=>value+1);}
+      else if(failure.message==='stock_unavailable'){setQuote(null);refreshStock?.();}
       else if (failure.message === 'quote_changed') {
         try {
           const data = await api('/checkout/quote','POST',{items});
@@ -154,6 +196,7 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
         } catch (refreshError) {
           setQuote(null);
           setError(refreshError.message);
+          if(refreshError.message==='stock_unavailable')refreshStock?.();
         }
       } else if (failure.status === 409) setQuote(null);
     } finally {
@@ -165,6 +208,7 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
   if (catalogStatus !== 'ready') return <main className="commerce-page" data-commerce><h1>{l('Checkout','إتمام الطلب')}</h1>
     <p role="status">{catalogStatus === 'loading' ? l('Loading cart…','جارٍ تحميل السلة…') : l('Checkout is temporarily unavailable.','إتمام الطلب غير متاح مؤقتاً.')}</p></main>;
   if (!items.length) return <main className="commerce-page" data-commerce><h1>{l('Checkout','إتمام الطلب')}</h1>
+    {cart.stockAdjusted&&<p role="status">{l('Items in your cart are no longer available.','القطع الموجودة في سلتك لم تعد متوفرة.')}</p>}
     <p>{l('Your cart is empty.','سلتك فارغة.')}</p><button className="button" onClick={() => navigate('/shop')}>{l('Shop','المتجر')}</button></main>;
 
   const lines = readyQuote?.lines ?? cart.items.map(item => ({...item,originalPrice:item.originalPrice ?? item.unitPrice}));
@@ -173,18 +217,18 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
   const maximum = readyQuote ? readyQuote.estimatedMax : cart.estimatedMax;
   const discount = readyQuote?.discount ?? lines.reduce((sum,line)=>sum+(line.originalPrice-line.unitPrice)*line.quantity,0);
   return <main className="commerce-page" data-commerce><h1>{l('Checkout','إتمام الطلب')}</h1>
-    <form className="commerce-grid" onSubmit={submit}>
+    <form className="commerce-grid" ref={form} noValidate onSubmit={submit}>
       <fieldset className="commerce-panel commerce-fields" disabled={busy}>
         <legend>{l('Customer information','معلومات العميل')}</legend>
-        <label>{l('Full name','الاسم الكامل')}<input name="name" required autoComplete="name" maxLength={120} value={fields.name} onChange={update}/></label>
-        <PhoneField fields={fields} update={update} l={l}/>
-        <PhoneField alternative fields={fields} update={update} l={l}/>
+        <label>{l('Full name (optional)','الاسم الكامل (اختياري)')}<input name="name" autoComplete="name" maxLength={120} value={fields.name} onChange={update} {...fieldAttributes('name',feedback('name'))}/><FieldError name="name" message={feedback('name')}/></label>
+        <PhoneField fields={fields} update={update} l={l} message={feedback('phone')}/>
+        <PhoneField alternative fields={fields} update={update} l={l} message={feedback('alternativePhone')}/>
         <CityPicker cities={destinations.items} selected={city} lang={lang} disabled={destinations.loading||destinations.error}
-          error={error==='invalid_destination'} onSelect={value=>{setCity(value);if(error==='invalid_destination')setError('');}}/>
+          error={feedback('city')} onSelect={value=>{setCity(value);if(value){setDestinationRejected(false);if(error==='invalid_destination')setError('');}}}/>
         {destinations.loading&&<small role="status">{l('Loading cities…','جارٍ تحميل المدن…')}</small>}
         {destinations.error&&<button type="button" className="button secondary" onClick={()=>setCityRefresh(value=>value+1)}>
           {l('Retry loading cities','أعيدي تحميل المدن')}</button>}
-        <label>{l('Street and address details','الشارع وتفاصيل العنوان')}<textarea name="address" required autoComplete="street-address" maxLength={600} value={fields.address} onChange={update}/></label>
+        <label><span>{l('Street and address details','الشارع وتفاصيل العنوان')}<span aria-hidden="true"> *</span></span><textarea name="address" required autoComplete="street-address" maxLength={600} value={fields.address} onChange={update} {...fieldAttributes('address',feedback('address'))}/><FieldError name="address" message={feedback('address')}/></label>
         <p>{l('We save these details to process your order, arrange delivery, and contact you about it.','نحفظ هذه البيانات لمعالجة طلبك وترتيب التوصيل والتواصل معك بشأنه.')}</p>
         <p><strong>{l('Cash on Delivery','الدفع عند الاستلام')}</strong></p>
       </fieldset>
@@ -211,11 +255,12 @@ export default function Checkout({lang, t, navigate, catalogStatus}) {
         </dl>
         <p>{l('Delivery fees are not included. They will be confirmed through WhatsApp.','رسوم التوصيل غير مشمولة وسيتم تأكيدها عبر واتساب.')}</p>
         {estimated != null && <p>{rangeExplanation[lang]}</p>}
-        {error && <p role="alert">{error==='invalid_destination'?l('Select an available city from the list.','اختاري مدينة متاحة من القائمة.'):
+        {cart.stockAdjusted&&<p role="status">{l('Stock changed. Review your updated quantities.','تغيّرت الكمية المتوفرة. راجعي الكميات المحدّثة.')}</p>}
+        {!readyQuote && !error && <p role="status">{l('Updating the order total…','جارٍ تحديث إجمالي الطلب…')}</p>}
+        {error && error!=='invalid_destination' && <p role="alert">{
           errors[error]?.[ar ? 1 : 0] || l('Checkout is temporarily unavailable. Please try again.','إتمام الطلب غير متاح مؤقتاً. حاولي مرة أخرى.')}</p>}
-        <button className="button" disabled={!readyQuote || busy || recovering}>{busy ? l('Saving order…','جارٍ حفظ الطلب…') : l('Place Order','إرسال الطلب')}</button>
+        <button className="button" disabled={busy || recovering}>{busy ? l('Saving order…','جارٍ حفظ الطلب…') : l('Place Order','إرسال الطلب')}</button>
       </section>
     </form>
   </main>;
 }
-import CityPicker from './CityPicker.jsx';

@@ -131,12 +131,14 @@ const ils = cents => '₪' + (cents / 100).toLocaleString('en-US', {maximumFract
 function price(sku, presentation) {
   if (presentation.priceMode === 'range') return {
     price:priceRange(presentation.minPrice,presentation.maxPrice),priceValue:presentation.minPrice/100,
+    availableStock:sku?.stock ?? 0,
     purchasable:sku?.stock > 0,
     status:!sku || sku.stock === 0 ? 'Sold Out' : 'Available to order'
   };
   if (!sku || sku.base_price == null) return {price: presentation.displayPrice || 'Message us', status: 'Available to order', purchasable: false};
   const sale = sku.sale_price ?? sku.base_price;
   return {price: ils(sale), priceValue: sale / 100,
+    availableStock:sku.stock ?? 0,
     originalPrice: sale < sku.base_price ? ils(sku.base_price) : undefined,
     discountPercent: sale < sku.base_price ? Math.round((sku.base_price - sale) * 100 / sku.base_price) : undefined,
     purchasable: sku.stock > 0,
@@ -153,6 +155,7 @@ export function storefrontProducts(rows) {
         const sku = skus.find(sku => sku.variant === option.id);
         const {sku:internalSku,...publicOption}=option;
         return {...publicOption,...price(p.trackStock === false ? {...sku,stock:1} : sku,p.priceMode === 'range' ? p : option),
+          ...(p.trackStock === false && {availableStock:null}),
           ...(option.enabled === false && {status:'Unavailable',purchasable:false})};
       });
     const selected = variants.find(option => option.id === p.defaultVariant && option.purchasable) ||
@@ -162,6 +165,7 @@ export function storefrontProducts(rows) {
       variants.some(variant=>variant.selections?.[group.id]===value.id))}));
     return {...p, ...(row.quantity_promotion && {quantityPromotion:row.quantity_promotion}),
       optionGroups:groups,slug: row.slug, ...price(p.trackStock === false && sku ? {...sku,stock:1} : sku,p.priceMode === 'range' ? p : selected || p),
+      ...(p.trackStock === false && {availableStock:null}),
       ...(variants.length ? {variants, defaultVariant: selected.id,
         status: variants.every(option => option.status === 'Sold Out') ? 'Sold Out' :
           variants.some(option => option.purchasable) ? 'Available' :

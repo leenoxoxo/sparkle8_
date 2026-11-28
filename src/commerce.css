@@ -5,7 +5,41 @@
 }
 .commerce-page h1 { font-size: clamp(2.4rem, 7vw, 4.5rem); margin-block-end: 1.25rem; }
 .order-success { max-width: 38rem; margin: 0 auto; text-align: center; display: grid; justify-items: center; gap: .75rem; padding-block: clamp(1.75rem, 6vw, 4rem); }
-.order-success > svg, .order-reference { color: var(--rose); }
+.order-success-mark, .order-reference { color: var(--rose); }
+.order-success-mark { position:relative; display:grid; }
+.order-success-stars { position:absolute; inset:0; pointer-events:none; }
+.order-success-stars span {
+  position:absolute;
+  top:32%;
+  left:37%;
+  color:#b84f82;
+  opacity:0;
+  font-size:.8rem;
+  animation:order-star-burst 1.35s var(--star-delay) ease-out both;
+}
+.order-success-stars span:nth-child(even) { color:#a36a21; font-size:.65rem; }
+.dark-mood .order-success-stars span { color:#f6a7cb; }
+.dark-mood .order-success-stars span:nth-child(even) { color:#ffda8a; }
+.order-success[data-celebrate="true"] .order-success-mark > svg { animation:order-check-in .55s ease-out both; }
+.order-success[data-celebrate="true"] :is(h1,.order-success-message) { animation:order-message-in .65s ease-out both; }
+@keyframes order-star-burst {
+  0% { opacity:0; transform:scale(.35); }
+  20% { opacity:1; }
+  65% { opacity:.9; }
+  100% { opacity:0; transform:translate(var(--star-x),var(--star-y)) rotate(26deg) scale(.7); }
+}
+@keyframes order-check-in {
+  from { opacity:.45; transform:scale(.72); }
+  68% { transform:scale(1.09); }
+  to { opacity:1; transform:scale(1); }
+}
+@keyframes order-message-in {
+  from { opacity:.52; transform:translateY(6px); }
+  to { opacity:1; transform:translateY(0); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .order-success[data-celebrate="true"] :is(.order-success-mark > svg,h1,.order-success-message,.order-success-stars span) { animation:none; }
+}
 .order-success h1 { font-size: clamp(2rem, 6vw, 3.35rem); margin: 0; }
 .order-reference { font-size: 1.35rem; font-weight: 700; }
 .admin-order-line { display: grid; grid-template-columns: 48px minmax(0,1fr); gap: .65rem; align-items: center; margin-block: .45rem; }
@@ -24,6 +58,10 @@
 .commerce-panel legend { padding-inline: 0.5rem; font-weight: 700; }
 .commerce-fields, .commerce-fields label { display: grid; gap: 0.4rem; }
 .commerce-fields { gap: 0.9rem; }
+.commerce-fields [aria-invalid="true"],
+.commerce-fields [aria-invalid="true"]:focus { border-color:#bd3d56 !important; }
+.checkout-field-error { color:#a82742; }
+.dark-mood .checkout-field-error { color:#ff9eb0; }
 .commerce-page input, .commerce-page select, .commerce-page textarea, .commerce-panel input, .commerce-panel textarea {
   width: 100%;
   min-width: 0;

@@ -12,3 +12,8 @@ export function normalizeWhatsApp(prefix, input) {
   const pattern = prefix === '+970' ? /^5[69]\d{7}$/ : /^5[0-689]\d{7}$/;
   return pattern.test(digits) ? prefix + digits : null;
 }
+export function checkoutPhone(prefix, input) {
+  if (typeof input !== 'string') return null;
+  const digits=input.replace(/[٠-٩۰-۹]/g,char=>String(char.charCodeAt(0)%16));
+  return /^0[0-9]{9}$/.test(digits) ? normalizeWhatsApp(prefix,digits) : null;
+}

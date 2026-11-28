@@ -121,8 +121,9 @@ export function Customers({data,run,onOrders}) {
   const t = useAdminText();
   return <>
     {!data.length && <p>{t('No customers match these filters.')}</p>}
-    {data.map(row =>
-      <details className="commerce-panel" key={row.phone}><summary>{row.contact?.name || [row.first_name,row.last_name].filter(Boolean).join(' ')} · <bdi>{row.phone}</bdi> · {row.order_count} <AdminLabel>Orders</AdminLabel></summary>
+    {data.map(row => {
+      const name=row.contact?.name || [row.first_name,row.last_name].filter(Boolean).join(' ');
+      return <details className="commerce-panel" key={row.phone}><summary>{name && name+' · '}<bdi>{row.phone}</bdi> · {row.order_count} <AdminLabel>Orders</AdminLabel></summary>
         <OrderContact contact={row.contact}/>
         <p><AdminLabel>First order</AdminLabel> {row.first_order ? new Date(row.first_order).toLocaleDateString() : '—'} · <AdminLabel>Last order</AdminLabel> {row.last_order ? new Date(row.last_order).toLocaleDateString() : '—'}</p>
         <p>{t('Confirmed purchase value')} <bdi>{ils(row.confirmed_total)}</bdi> · {t('Collected purchase value')} <bdi>{ils(row.completed_total)}</bdi></p>
@@ -134,7 +135,8 @@ export function Customers({data,run,onOrders}) {
         }}><label><AdminLabel>Internal notes</AdminLabel><textarea name="notes" maxLength={4000} defaultValue={row.admin_notes}/></label>
           <button className="button secondary"><AdminLabel>Save notes</AdminLabel></button></form>
         <button className="button secondary" onClick={()=>onOrders(row.phone)}>{t('View all orders')}</button>
-        <Table headers={['Order','State','Payment','Total','Date']} rows={row.orders.map(o => [o.reference,orderReference(o.reference,o.referenceFormat),t(o.status),t(o.paid ? 'Paid' : 'Unpaid'),totalAmount(o,t),new Date(o.date).toLocaleDateString()])}/></details>)}</>;
+        <Table headers={['Order','State','Payment','Total','Date']} rows={row.orders.map(o => [o.reference,orderReference(o.reference,o.referenceFormat),t(o.status),t(o.paid ? 'Paid' : 'Unpaid'),totalAmount(o,t),new Date(o.date).toLocaleDateString()])}/></details>;
+    })}</>;
 }
 
 export function Promotions({data,run}) {

@@ -409,7 +409,7 @@ test('Passport login and persistent sessions protect product, image and delivery
     const submission = randomUUID();
     const buyer = {name:'Noor Test',destinationCode:'nablus',destinationRegion:'west-bank',address:'Example street 12',prefix:'+970',phone:'0594000123',alternativePrefix:'+972',alternativePhone:'0541234567'};
     const body = {submission,items,expected:quote,language:'en',customer:buyer};
-    for (const changes of [{phone:'invalid'},{name:''},{destinationCode:' ',city:'Nablus'},{address:''},{alternativePhone:'invalid'}]) {
+    for (const changes of [{phone:'invalid'},{phone:''},{phone:'059400012'},{phone:'05940001234'},{phone:'0594-000123'},{destinationCode:' ',city:'Nablus'},{address:''},{alternativePhone:'invalid'}]) {
       assert.equal((await call('/checkout/orders',{method:'POST',body:{...body,customer:{...buyer,...changes}}})).status,400);
     }
     assert.equal((await call('/checkout/orders',{method:'POST',body:{...body,customer:{...buyer,destinationRegion:'inside-1948'}}})).status,409);
@@ -458,18 +458,21 @@ test('Passport login and persistent sessions protect product, image and delivery
     assert.equal((await write('PATCH','/orders/' + orders[0].id,{status:'Cancelled'})).status,200);
     assert.equal((await (await call('/admin/products',{cookie})).json())[0].catalog_skus[0].stock,4);
     let reference=Number(initial.reference.slice(3));
-    for (const contact of [{...buyer,phone:'+970 594000123',destinationCode:'ramallah',address:'New address'},
+    for (const contact of [{...buyer,name:'',phone:'٠٥٩٤٠٠٠١٢٣',destinationCode:'ramallah',address:'New address'},
       {...buyer,prefix:'+972',phone:'0540000123',alternativePhone:''}]) {
       const order = await call('/checkout/orders',{method:'POST',body:{...body,submission:randomUUID(),customer:contact,language:'ar'}});
       assert.equal(order.status,201);
       const second=await order.json();
       assert.equal(Number(second.reference.slice(3)),++reference);
-      assert.match(new URL(second.whatsappUrl).searchParams.get('text'),/بدي أكد طلبي وأعرف تكلفة التوصيل/);
+      const draft=new URL(second.whatsappUrl).searchParams.get('text');
+      assert.match(draft,/بدي أكد طلبي وأعرف تكلفة التوصيل/);
+      if(!contact.name) assert.doesNotMatch(draft,/الاسم:/);
     }
     assert.equal((await write('PATCH','/customers/%2B970594000123',{notes:'Internal test'})).status,200);
     assert.equal((await call('/admin/customers')).status,401);
     const directory = await (await call('/admin/customers',{cookie})).json();
     assert.equal(directory.length,2);
+    assert.equal(directory.find(row=>row.phone==='+970594000123').first_name,'Noor');
     assert.equal(directory.find(row=>row.phone==='+970594000123').contact.city,'Ramallah');
     assert.equal(directory.find(row=>row.phone==='+972540000123').contact.alternativePhone,null);
     assert.equal((await (await call('/admin/orders?search=Nablus',{cookie})).json()).find(row=>row.id===orders[0].id).snapshot.customer.address,'Example street 12');
@@ -486,9 +489,13 @@ test('Passport login and persistent sessions protect product, image and delivery
     const mixed=await (await quoteCart([...items,kitLine])).json();
     assert.equal(mixed.total,9000);
     assert.deepEqual(mixed.lines.find(line=>line.productId==='test-kit').kitChoices,['Mirror']);
-    const mixedOrder=await call('/checkout/orders',{method:'POST',body:{...body,items:[...items,kitLine],expected:mixed,submission:randomUUID()}});
+    const mixedSubmission=randomUUID();
+    const mixedOrder=await call('/checkout/orders',{method:'POST',body:{...body,items:[...items,kitLine],expected:mixed,submission:mixedSubmission}});
     assert.equal(mixedOrder.status,201);
     assert.doesNotMatch(new URL((await mixedOrder.json()).whatsappUrl).searchParams.get('text'),/Mirror|Test Kit|₪/);
+    assert.equal((await quoteCart([kitLine])).status,409);
+    const heldKit=(await (await call('/admin/orders',{cookie})).json()).find(order=>order.submission===mixedSubmission);
+    assert.equal((await write('PATCH','/orders/'+heldKit.id,{status:'Cancelled'})).status,200);
     const legacy = await fetch(new URL('/custom-orders',base),{redirect:'manual'});
     assert.equal(legacy.status,302);
     assert.equal(legacy.headers.get('location'),'/shop?tab=cakes');
@@ -573,4 +580,57 @@ test('Passport login and persistent sessions protect product, image and delivery
     if (server?.listening) await stop();
     await db.close();
   }
+});
+
+test('stock caps restored cart quantities across customizations and independently per variant',()=>{
+  const products=[{slug:'kit',name:'Kit',price:'₪20',kitOptions:['Mirror','Brush'],kitPieces:1,variants:[
+    {id:'pink',price:'₪20',availableStock:1},{id:'blue',price:'₪20',availableStock:3},{id:'white',price:'₪20',availableStock:0}
+  ]}];
+  const item=(variantId,choice,quantity)=>({productId:'kit',variantId,kitChoices:[choice],quantity});
+  const restored=restoreCart(products,[
+    item('pink','Mirror',4),item('pink','Brush',1),item('blue','Mirror',2),item('blue','Brush',2),item('white','Brush',1)
+  ]);
+  assert.deepEqual(restored.map(row=>[row.variantId,row.kitChoices[0],row.quantity]),[
+    ['pink','Mirror',1],['blue','Mirror',2],['blue','Brush',1]
+  ]);
+});
+
+test('pending reservations serialize competing orders, expire, and never deduct twice',async()=>{
+  const database=new PGlite();
+  try {
+    await migrate(database);
+    const db=repository(database);
+    const {skus,...product}=productInput('hold-fixture',{published:true,archived:false,presentation:{name:'Hold fixture',category:'Mirrors'},
+      skus:[{variant:'',base_price:2000,stock:1,low_stock:1}]});
+    await db.saveProduct('hold-fixture',product,skus);
+    const items=[{productId:'hold-fixture',quantity:1}];
+    const expected=await db.quote(items);
+    const submit=(submission=randomUUID())=>db.submitDestination({submission,items,expected,language:'en',code:'nablus',region:'west-bank',
+      customer:{firstName:'',lastName:'',name:'',phone:'+970594000000',address:'Fixture address'}});
+    const id=randomUUID();
+    const attempts=await Promise.allSettled([submit(id),submit()]);
+    const winner=attempts[0].value;
+    assert.equal(winner.status,'Pending');
+    assert.equal(attempts[1].reason.message,'stock_unavailable');
+    assert.equal((await submit(id)).id,winner.id);
+    const stock=async()=> (await db.catalog())[0].catalog_skus[0].stock;
+    assert.equal(await stock(),1);
+    assert.equal((await db.catalog(true))[0].catalog_skus[0].stock,0);
+    await assert.rejects(db.quote(items),/stock_unavailable/);
+    await db.transition(winner.id,'Cancelled',null);
+    assert.equal(await stock(),1);
+    const expired=await submit();
+    await database.query("update public.shop_orders set reservation_expires_at=clock_timestamp()-interval '1 second' where id=$1",[expired.id]);
+    await assert.rejects(db.transition(expired.id,'Confirmed',null),/reservation_expired/);
+    const renewed=await submit();
+    await db.transition(renewed.id,'Confirmed',null);
+    await db.transition(renewed.id,'Confirmed',null);
+    assert.equal(await stock(),0);
+    await db.transition(renewed.id,'Cancelled',null);
+    assert.equal(await stock(),1);
+    await db.transition(expired.id,'Cancelled',null);
+    assert.equal(await stock(),1);
+    await database.query("update public.catalog_skus set stock=0 where product_slug='hold-fixture'");
+    await assert.rejects(submit(),/stock_unavailable/);
+  }finally{await database.close();}
 });

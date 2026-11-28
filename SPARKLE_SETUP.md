@@ -79,3 +79,11 @@ After explicit approval, verify the intended database and save an encrypted back
 Open **Admin → Website Management → Seasonal Effects** to preview and save snow, sparkles, frosted accents, intensity, speed, and optional inclusive dates. Settings are stored under a separate key in the existing website content table. They default to off and require no database migration. Changes appear on the next page load or when a visitor returns focus to the site after the refresh interval.
 
 With Vite running, open `http://localhost:5173/?winter-preview=1` to preview winter mode without saving. The preview query works only in development. Checkout and the order success page exclude site effects, and the admin dashboard shows them only in the preview panel you open.
+
+## Stock reservation rollout
+
+Migration `202611280015_stock_reservations.sql` adds a nullable expiration timestamp and updates the checkout and confirmation functions. New Pending orders with tracked items hold stock for 24 hours. Confirmation converts the hold into one physical deduction. Cancelling a Pending order or letting its hold expire releases availability. Orders already in the database keep their status and have no retroactive hold. Made-to-order lines remain exempt from stock holds.
+
+Before an approved rollout, verify the live database endpoint and the migration ledger through migration 14. Create an encrypted backup with a separately stored key and verify a restore in isolation. Rehearse the migration on that copy, including checkout and admin confirmation with the deployed version, simultaneous checkout through separate PostgreSQL connections, and cancellation and expiration. Compare product, order, customer, inventory and admin records before and after.
+
+With approval, apply only migration 15 and record it in the ledger within the same transaction. Verify permissions and availability using the restricted runtime role. Roll back the transaction if any pre-commit check fails. If the new app needs to be rolled back after release, redeploy the prior app and keep the migration and active holds in place. Restoring the old database snapshot over production would discard newer orders and edits.

@@ -28,14 +28,17 @@ export function repository(pool) {
   const json = JSON.stringify;
   return {
     catalog: (publishedOnly = false) => rows(`
+      with reserved as materialized (select * from public.sparkle_reserved_stock() where $1)
       select p.*, coalesce(s.skus,'[]'::jsonb) as catalog_skus,
         case when $1 then public.sparkle_quantity_active(p.slug) end as quantity_promotion
       from public.catalog_products p
       left join lateral (select jsonb_agg(to_jsonb(s) || case when $1 then jsonb_build_object(
+          'stock',case when s.stock is not null then greatest(0,s.stock-coalesce(r.quantity,0)) end,
           'base_price',effective.base_price,'sale_price',
           public.sparkle_active_price(p.slug,p.presentation->>'category',effective.base_price,public.sparkle_direct_price(p.presentation,s.sale_price)))
           else '{}'::jsonb end order by s.variant) as skus
         from public.catalog_skus s
+        left join reserved r on r.slug=s.product_slug and r.variant=s.variant
         cross join lateral (select public.sparkle_variant_base(p.presentation,s.variant,s.base_price) as base_price) effective
         where s.product_slug = p.slug) s on true
       where (not $1::boolean or (p.published and not p.archived and public.sparkle_category_visible(p.presentation->>'category'))) order by p.slug
@@ -63,7 +66,7 @@ export function repository(pool) {
       on conflict(code) do update set name=excluded.name,name_ar=excluded.name_ar,
         region=excluded.region,fee=excluded.fee,active=excluded.active,selectable=excluded.selectable
     `,[area.code,area.name,area.name_ar,area.region,area.fee,area.active,area.selectable]),
-    quote: items => value('select public.sparkle_quote($1) as result',[json(items)]),
+    quote: items => value('select public.sparkle_available_quote($1) as result',[json(items)]),
     submit: ({submission,items,customer,expected,language}) => one('select * from public.sparkle_submit_whatsapp($1,$2,$3,$4,$5)',
       [submission,json(items),json(customer),json(expected),language]),
     order: token => one('select reference,snapshot from public.shop_orders where submission=$1',[token]),

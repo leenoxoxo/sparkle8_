@@ -28,6 +28,7 @@ const messages = {
   promotion_locked:'Archived promotions cannot be changed.',
   invalid_credentials:'The session is invalid or has expired. Please sign in again.',
   invalid_input:'Check the fields and try again.',
+  reservation_expired:'This stock reservation expired. Cancel the order and ask the customer to place it again.',
   stock_unavailable:'There is insufficient stock to confirm this order.',
   inventory_changed:'Stock changed while you were editing. Reload the product before saving.',
   unresolved_prices:'Enter the agreed unit price for every price-range item before confirming.',
@@ -578,15 +579,18 @@ function Orders({data,run}) {
       new Date(order.created_at).toLocaleDateString(),orderTotal(order.snapshot,t),t(order.status),t(order.paid ? 'Paid' : 'Unpaid'),action(order)])}/> :
       <div className="erp-lanes">{Object.keys(transitions).map(status => <section className="commerce-panel" key={status}><h3>{t(status)}</h3>
         {data.filter(order => order.status === status).map(order => <article className="commerce-panel" key={order.id}>
-          <strong>{orderReference(order.reference,order.snapshot.customer.referenceFormat)}</strong><p>{order.snapshot.customer.name} · {orderTotal(order.snapshot,t)}</p>{action(order)}</article>)}</section>)}</div>}
+          <strong>{orderReference(order.reference,order.snapshot.customer.referenceFormat)}</strong><p>{order.snapshot.customer.name ? order.snapshot.customer.name+' · ' : ''} {orderTotal(order.snapshot,t)}</p>{action(order)}</article>)}</section>)}</div>}
     {[selected].filter(Boolean).map(order => {
     const sale = order.snapshot;
     const customer = sale.customer;
     const editPrices = order.status === 'Pending' && sale.estimatedMin != null;
     const unresolved = sale.lines.some(line=>line.minPrice != null && line.agreedUnitPrice == null);
+    const expired=order.status==='Pending' && order.reservation_expires_at &&
+      Date.parse(order.reservation_expires_at)<=Date.now();
     return <details ref={orderDetail} open key={order.id} className="commerce-panel">
-      <summary><strong>{orderReference(order.reference,customer.referenceFormat)}</strong> · {customer.name} · {t(order.status)} · {t(order.paid ? 'Paid' : 'Unpaid')} · {orderTotal(sale,t)}</summary>
+      <summary><strong>{orderReference(order.reference,customer.referenceFormat)}</strong> · {customer.name ? customer.name+' · ' : ''}{t(order.status)} · {t(order.paid ? 'Paid' : 'Unpaid')} · {orderTotal(sale,t)}</summary>
       <p>{new Date(order.created_at).toLocaleString(lang)}</p>
+      {expired&&<p role="status">{l('Stock reservation expired. Cancel this order and ask the customer to place it again.','انتهت صلاحية حجز المخزون. ألغِ هذا الطلب واطلبي من العميل تقديم طلب جديد.')}</p>}
       <OrderContact contact={{...customer,phone:order.customer_phone || customer.phone,city:cityName(customer) || sale.destination?.name}}/>
       {customer.deliveryDestination && <p><strong>{l('Delivery region','منطقة التوصيل')}</strong>{' '}
         {regionName(customer)}</p>}
@@ -626,7 +630,7 @@ function Orders({data,run}) {
       <ul>{[...(order.order_events ?? [])].sort((a,b) => a.created_at.localeCompare(b.created_at)).map(event =>
         <li key={event.event + event.created_at}>{t(event.event)} · {new Date(event.created_at).toLocaleString()}</li>)}</ul>
       {order.status === 'Pending' && unresolved && <p>{t(messages.unresolved_prices)}</p>}
-      <div className="commerce-actions">{(transitions[order.status] || []).filter(status => status !== 'Paid' || !order.paid).map(status =>
+      <div className="commerce-actions">{(transitions[order.status] || []).filter(status => (status !== 'Paid' || !order.paid) && (status !== 'Confirmed' || !expired)).map(status =>
         <button className="button secondary" key={status} disabled={status === 'Confirmed' && unresolved} onClick={() =>
           (status!=='Cancelled' || window.confirm(t('Cancel this order?'))) && run(() => api('/admin/orders/' + order.id,'PATCH',{status}))}>{t(status === 'Paid' ? 'Mark paid' : status)}</button>)}</div>
     </details>;

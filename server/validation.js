@@ -1,5 +1,6 @@
 import {HttpError} from './errors.js';
-import {normalizeWhatsApp} from '../src/whatsapp-phone.js';
+import {checkoutPhone} from '../src/whatsapp-phone.js';
+import {validCheckoutName,validCheckoutAddress} from '../src/checkout-contact.js';
 
 export const uuid = value => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 export const slug = value => typeof value === 'string' && /^[a-z0-9][a-z0-9-]{0,119}$/.test(value);
@@ -32,15 +33,18 @@ export function cart(items) {
 }
 
 export function customer(value) {
-  const name = text(value?.name,120);
+  const name = value?.name ?? '';
+  if (!validCheckoutName(name)) invalid('invalid_name');
   const city = text(value?.city,120);
-  const address = text(value?.address,600);
-  if (/[\p{Cc}\u2028\u2029]/u.test(name+city) || /[^\P{Cc}\r\n\t]/u.test(address)) invalid();
-  const phone = normalizeWhatsApp(value.prefix,value.phone);
+  if (typeof value?.address !== 'string' || !value.address.trim()) invalid('address_required');
+  if (!validCheckoutAddress(value.address)) invalid('invalid_address');
+  const address = value.address.trim();
+  if (value.phone == null || value.phone === '') invalid('phone_required');
+  const phone = checkoutPhone(value.prefix,value.phone);
   if (!phone) invalid('invalid_phone');
-  const alternative = text(value.alternativePhone ?? '',32,0);
-  const alternativePhone = alternative ? normalizeWhatsApp(value.alternativePrefix,alternative) : null;
-  if (alternative && !alternativePhone) invalid('invalid_alternative_phone');
-  const [firstName,...lastNames] = name.split(/\s+/u);
-  return {firstName,lastName:lastNames.join(' '),name,phone,alternativePhone,city,address,referenceFormat:'SP'};
+  const alternative = value.alternativePhone ?? '';
+  const alternativePhone = alternative === '' ? null : checkoutPhone(value.alternativePrefix,alternative);
+  if (alternative !== '' && !alternativePhone) invalid('invalid_alternative_phone');
+  const [firstName,...lastNames] = name.trim().split(/\s+/u);
+  return {firstName,lastName:lastNames.join(' '),name:name.trim(),phone,alternativePhone,city,address,referenceFormat:'SP'};
 }

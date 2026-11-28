@@ -6,6 +6,9 @@ export function priceCents(value) {
 }
 export const money = cents => '₪' + (cents / 100).toLocaleString('en-US', {maximumFractionDigits:2});
 export const validQuantity = quantity => Number.isSafeInteger(quantity) && quantity >= 1 && quantity <= 999;
+export const stockLimit=product=>Number.isSafeInteger(product?.availableStock)?Math.max(0,Math.min(999,product.availableStock)):999;
+export const remainingStock=(items,productId,variantId,limit,exceptKey)=>Math.max(0,limit-items.reduce((total,item)=>
+  item.productId===productId && (item.variantId||null)===(variantId||null) && item.key!==exceptKey ? total+item.quantity : total,0));
 export function cartPrices(items) {
   const fixedTotal = items.reduce((sum,item) => sum + (item.unitPrice ?? 0)*item.quantity,0);
   if (!items.some(item=>item.minPrice != null)) return {total:fixedTotal};
@@ -29,14 +32,21 @@ export function resolveItem(catalog, raw) {
   if (base.kitOptions?.length ? choices.length !== (base.kitPieces || 1) || choices.some(choice=>!base.kitOptions.includes(choice)) : choices.length) return null;
   const range = base.priceMode === 'range';
   const cents = range ? null : priceCents(product.price);
-  if ((!range && cents === null) || product.status === 'Sold Out' || product.purchasable === false) return null;
+  const limit=stockLimit(product);
+  if ((!range && cents === null) || !limit || product.status === 'Sold Out' || product.purchasable === false) return null;
   return {key:itemKey(base.slug,variant?.id,choices),productId:base.slug,variantId:variant?.id || null,kitChoices:choices,name:base.name,variantName:variant?.name || null,image:variant?.image || base.image,option:variant && {name:variant.name,nameAr:variant.nameAr,choices:variant.choices},colors:variant?.colors,unitPrice:cents,originalPrice:priceCents(product.originalPrice),quantity:raw.quantity,
-    ...(range && {minPrice:base.minPrice,maxPrice:base.maxPrice})};
+    limit,...(range && {minPrice:base.minPrice,maxPrice:base.maxPrice})};
 }
 export function restoreCart(catalog, saved) {
   if (!Array.isArray(saved)) return [];
   const merged=new Map();
-  for(const raw of saved.slice(0,500)){const item=resolveItem(catalog,raw);if(item){const old=merged.get(item.key);merged.set(item.key,{...item,quantity:Math.min(999,item.quantity+(old?.quantity||0))});}}
+  for(const raw of saved.slice(0,500)){
+    const item=resolveItem(catalog,raw);
+    if(!item)continue;
+    const limit=remainingStock([...merged.values()],item.productId,item.variantId,item.limit,item.key);
+    const quantity=Math.min(limit,item.quantity+(merged.get(item.key)?.quantity||0));
+    if(quantity)merged.set(item.key,{...item,quantity});
+  }
   return [...merged.values()];
 }
 export function swatchBackground(colors) {
