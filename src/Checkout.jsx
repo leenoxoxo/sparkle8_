@@ -20,7 +20,7 @@ const celebrationStars=[
 ];
 const errors = {
   phone_required:['Phone number is required.','رقم الهاتف مطلوب.'],
-  invalid_name:['Please enter a valid name.','يرجى إدخال اسم صحيح.'],
+  invalid_name:['Please enter your full name.','يرجى إدخال الاسم الكامل.'],
   invalid_address:['Please enter a valid address.','يرجى إدخال عنوان صحيح.'],
   address_required:['Please enter your street and detailed address.','يرجى إدخال اسم الشارع والعنوان بالتفصيل.'],
   invalid_destination:['Please select your city.','يرجى اختيار المدينة.'],
@@ -220,7 +220,7 @@ export default function Checkout({lang, t, navigate, catalogStatus,refreshStock}
     <form className="commerce-grid" ref={form} noValidate onSubmit={submit}>
       <fieldset className="commerce-panel commerce-fields" disabled={busy}>
         <legend>{l('Customer information','معلومات العميل')}</legend>
-        <label>{l('Full name (optional)','الاسم الكامل (اختياري)')}<input name="name" autoComplete="name" maxLength={120} value={fields.name} onChange={update} {...fieldAttributes('name',feedback('name'))}/><FieldError name="name" message={feedback('name')}/></label>
+        <label><span>{l('Full name','الاسم الكامل')}<span aria-hidden="true"> *</span></span><input name="name" required autoComplete="name" maxLength={120} value={fields.name} onChange={update} {...fieldAttributes('name',feedback('name'))}/><FieldError name="name" message={feedback('name')}/></label>
         <PhoneField fields={fields} update={update} l={l} message={feedback('phone')}/>
         <PhoneField alternative fields={fields} update={update} l={l} message={feedback('alternativePhone')}/>
         <CityPicker cities={destinations.items} selected={city} lang={lang} disabled={destinations.loading||destinations.error}

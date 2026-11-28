@@ -308,6 +308,10 @@ test('PostgreSQL checkout, delivery rules, snapshots and inventory lifecycle', a
     assert.equal(arabic.searchParams.size,1);
     const message = arabic.searchParams.get('text');
     assert.ok(message.includes(customer.name));
+    const historical={...order,snapshot:{...order.snapshot,customer:{...order.snapshot.customer,name:''}}};
+    const historicalDraft=new URL(orderConfirmation(historical).whatsappUrl).searchParams.get('text');
+    assert.doesNotMatch(historicalDraft,/الاسم:/);
+    assert.match(historicalDraft,/#SPK-/);
     assert.ok(message.includes('#SPK-'));
     assert.ok(!message.includes(customer.address));
     assert.ok(!message.includes(customer.notes));
@@ -409,6 +413,11 @@ test('Passport login and persistent sessions protect product, image and delivery
     const submission = randomUUID();
     const buyer = {name:'Noor Test',destinationCode:'nablus',destinationRegion:'west-bank',address:'Example street 12',prefix:'+970',phone:'0594000123',alternativePrefix:'+972',alternativePhone:'0541234567'};
     const body = {submission,items,expected:quote,language:'en',customer:buyer};
+    for (const name of [undefined,'',' \t ']) {
+      const rejected=await call('/checkout/orders',{method:'POST',body:{...body,customer:{...buyer,name}}});
+      assert.equal(rejected.status,400);
+      assert.equal((await rejected.json()).error,'invalid_name');
+    }
     for (const changes of [{phone:'invalid'},{phone:''},{phone:'059400012'},{phone:'05940001234'},{phone:'0594-000123'},{destinationCode:' ',city:'Nablus'},{address:''},{alternativePhone:'invalid'}]) {
       assert.equal((await call('/checkout/orders',{method:'POST',body:{...body,customer:{...buyer,...changes}}})).status,400);
     }
@@ -458,7 +467,7 @@ test('Passport login and persistent sessions protect product, image and delivery
     assert.equal((await write('PATCH','/orders/' + orders[0].id,{status:'Cancelled'})).status,200);
     assert.equal((await (await call('/admin/products',{cookie})).json())[0].catalog_skus[0].stock,4);
     let reference=Number(initial.reference.slice(3));
-    for (const contact of [{...buyer,name:'',phone:'٠٥٩٤٠٠٠١٢٣',destinationCode:'ramallah',address:'New address'},
+    for (const contact of [{...buyer,phone:'٠٥٩٤٠٠٠١٢٣',destinationCode:'ramallah',address:'New address'},
       {...buyer,prefix:'+972',phone:'0540000123',alternativePhone:''}]) {
       const order = await call('/checkout/orders',{method:'POST',body:{...body,submission:randomUUID(),customer:contact,language:'ar'}});
       assert.equal(order.status,201);
@@ -466,7 +475,7 @@ test('Passport login and persistent sessions protect product, image and delivery
       assert.equal(Number(second.reference.slice(3)),++reference);
       const draft=new URL(second.whatsappUrl).searchParams.get('text');
       assert.match(draft,/بدي أكد طلبي وأعرف تكلفة التوصيل/);
-      if(!contact.name) assert.doesNotMatch(draft,/الاسم:/);
+      assert.match(draft,/الاسم: Noor Test/);
     }
     assert.equal((await write('PATCH','/customers/%2B970594000123',{notes:'Internal test'})).status,200);
     assert.equal((await call('/admin/customers')).status,401);

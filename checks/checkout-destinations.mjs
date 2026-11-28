@@ -67,9 +67,17 @@ test('search and select a delivery destination on desktop and mobile without a l
         assert.equal(await page.locator('.winter-layer--site').count(),0);
         const picker=page.getByRole('combobox',{name:lang==='en'?'City':'المدينة',exact:true});
         const place=page.locator('button').filter({hasText:lang==='en'?'Place Order':'إرسال الطلب'});
-        const phone=page.locator('[name=phone]'),address=page.locator('[name=address]'),alternative=page.locator('[name=alternativePhone]');
+        const name=page.locator('[name=name]'),phone=page.locator('[name=phone]'),address=page.locator('[name=address]'),alternative=page.locator('[name=alternativePhone]');
+        const fullName=lang==='ar'?'نور أحمد':'Noor Ahmad';
         await place.click();
-        await page.waitForFunction(()=>document.activeElement?.name==='phone');
+        await page.waitForFunction(()=>document.activeElement?.name==='name');
+        assert.equal(await name.getAttribute('required'),'');
+        assert.equal(await name.getAttribute('aria-invalid'),'true');
+        assert.equal(await page.locator('#name-error').innerText(),lang==='ar'?'يرجى إدخال الاسم الكامل.':'Please enter your full name.');
+        await name.fill('   ');
+        assert.equal(await name.getAttribute('aria-invalid'),'true');
+        await name.fill(fullName);
+        assert.equal(await name.getAttribute('aria-invalid'),null);
         assert.equal(await phone.getAttribute('aria-invalid'),'true');
         assert.equal(await address.getAttribute('aria-invalid'),'true');
         assert.equal(await picker.getAttribute('aria-invalid'),'true');
@@ -93,6 +101,15 @@ test('search and select a delivery destination on desktop and mobile without a l
         if(lang==='ar')await city.tap();
         else{await picker.press('ArrowDown');await picker.press('Enter');}
         assert.equal(await picker.inputValue(),lang==='en'?'Nablus':'نابلس');
+        await name.fill('   ');
+        await place.click();
+        await page.waitForFunction(()=>document.activeElement?.name==='name');
+        assert.equal(submitted,undefined);
+        assert.equal(failSave,true);
+        assert.equal(await address.inputValue(),'Fixture address, building 1');
+        assert.equal(await phone.inputValue(),lang==='ar'?'٠٥٩٤٠٠٠١٢٣':'0594000123');
+        assert.equal(await picker.inputValue(),lang==='en'?'Nablus':'نابلس');
+        await name.fill(fullName);
         assert.equal(await page.locator('html').getAttribute('dir'),lang==='en'?'ltr':'rtl');
         assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
         await place.click();
@@ -114,7 +131,7 @@ test('search and select a delivery destination on desktop and mobile without a l
         await page.locator('.order-reference').waitFor();
         assert.equal(await page.locator('.order-success-stars').count(),0);
         assert.equal(await page.locator('.order-reference').innerText(),saved.reference);
-        assert.equal(submitted.customer.name,'');
+        assert.equal(submitted.customer.name,fullName);
         assert.equal(submitted.customer.destinationCode,'nablus');
         assert.equal(submitted.customer.destinationRegion,'west-bank');
         assert.equal(submitted.customer.address,'Fixture address, building 1');
